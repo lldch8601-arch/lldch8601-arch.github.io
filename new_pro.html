@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CH-最强新品推荐</title>
     <style>
-        /* 导航栏样式（和主页一致） */
+        /* 导航栏样式（和主页index.html一致） */
         * {
             margin: 0;
             padding: 0;
@@ -170,11 +170,16 @@
             .mobile-menu-btn {
                 display: block;
             }
+            /* 移动端优化卡片布局 */
+            .container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- 导航栏（和主页一致） -->
+    <!-- 导航栏（和主页index.html一致，确保跳转正确） -->
     <header class="nav-header">
         <div class="nav-container">
             <a href="index.html" class="logo">CH-商品推荐</a>
@@ -188,14 +193,14 @@
         </div>
     </header>
 
-    <!-- 原有新品页面内容 -->
-    <h1 class="header"> CH-最强新品推荐（潜力爆款）</h1>
+    <!-- 新品页面核心内容 -->
+    <h1 class="header">CH-最强新品推荐（潜力爆款）</h1>
     <div class="loading" id="loading">加载中...</div>
     <div class="container" id="product-container"></div>
     <div class="refresh-tip" id="refresh-tip">数据每5分钟自动刷新，当前时间：<span id="current-time"></span></div>
 
     <script>
-        // 移动端菜单逻辑
+        // 移动端菜单逻辑（适配小屏）
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         const navMenu = document.getElementById('navMenu');
         mobileMenuBtn.addEventListener('click', () => {
@@ -203,16 +208,26 @@
             mobileMenuBtn.textContent = navMenu.classList.contains('show') ? '←' : '☰';
         });
 
-        // 原有新品页面逻辑
+        // 核心配置
         const JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/%E6%96%B0%E5%93%81.json";
-        const REFRESH_INTERVAL = 5 * 60 * 1000;
+        const REFRESH_INTERVAL = 5 * 60 * 1000; // 5分钟刷新
 
+        // 格式化时间工具函数
         function formatTime() {
             const now = new Date();
-            return now.toLocaleString("zh-CN");
+            return now.toLocaleString("zh-CN", {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
         }
 
+        // 懒加载初始化（优化性能）
         function initLazyLoad() {
+            // 兼容低版本浏览器
             if (!('IntersectionObserver' in window)) {
                 document.querySelectorAll('.product-img').forEach(img => {
                     img.src = img.dataset.src;
@@ -221,16 +236,21 @@
                 return;
             }
 
+            // 配置观察者：提前100px加载，提升体验
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         const img = entry.target;
                         const realSrc = img.dataset.src;
+
+                        // 加载真实图片
                         img.src = realSrc;
+                        // 加载成功
                         img.onload = () => {
                             img.classList.add('loaded');
-                            observer.unobserve(img);
+                            observer.unobserve(img); // 停止监听，节省资源
                         };
+                        // 加载失败兜底
                         img.onerror = () => {
                             img.classList.add('error');
                             img.alt = '图片加载失败';
@@ -243,31 +263,38 @@
                 threshold: 0.1
             });
 
+            // 监听所有商品图片
             document.querySelectorAll('.product-img').forEach(img => {
                 observer.observe(img);
             });
         }
 
+        // 渲染商品列表核心函数
         async function renderProducts() {
             const loadingEl = document.getElementById("loading");
             const containerEl = document.getElementById("product-container");
             const timeEl = document.getElementById("current-time");
             
+            // 更新当前时间
             timeEl.textContent = formatTime();
 
             try {
+                // 拉取JSON数据（禁用缓存，确保最新）
                 const response = await fetch(JSON_URL, { cache: "no-cache" });
                 if (!response.ok) throw new Error(`HTTP错误：${response.status}`);
                 
                 const products = await response.json();
                 containerEl.innerHTML = "";
 
+                // 无数据兜底
                 if (products.length === 0) {
-                    containerEl.innerHTML = '<div style="text-align:center; width:100%; color:#666;">暂无商品数据</div>';
+                    containerEl.innerHTML = '<div style="text-align:center; width:100%; color:#666; padding: 50px 0;">暂无商品数据</div>';
                     return;
                 }
 
+                // 遍历渲染商品卡片
                 products.forEach(product => {
+                    // 字段容错，避免空值报错
                     const imgSrc = product.图片链接 || "";
                     const productName = product.商品名称 || "未知商品";
                     const publishTime = product.上架时间 || "未知";
@@ -284,28 +311,42 @@
                         >
                         <div class="product-name">${productName}</div>
                         <div class="product-meta">上架时间：${publishTime}</div>
-                        <a class="product-link" href="${productLink}" target="_blank">查看商品</a>
+                        <a class="product-link" href="${productLink}" target="_blank" rel="noopener noreferrer">查看商品</a>
                     `;
                     containerEl.appendChild(card);
                 });
 
+                // 初始化懒加载
                 initLazyLoad();
 
             } catch (error) {
-                loadingEl.textContent = "数据加载失败，请稍后重试";
-                console.error("加载失败详情：", error);
+                // 错误提示优化
+                loadingEl.textContent = "数据加载失败，请刷新页面重试";
+                console.error("商品数据加载失败：", error);
             } finally {
                 loadingEl.style.display = "none";
             }
         }
 
+        // 页面加载时执行
         window.onload = async function() {
+            // 首次渲染
             await renderProducts();
+
+            // 自动刷新逻辑（可选，不想刷新可注释）
             setInterval(async () => {
-                console.log("自动刷新数据...");
+                console.log("自动刷新商品数据...");
                 await renderProducts();
             }, REFRESH_INTERVAL);
         };
+
+        // 监听窗口大小变化，重置移动端菜单
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768 && navMenu.classList.contains('show')) {
+                navMenu.classList.remove('show');
+                mobileMenuBtn.textContent = '☰';
+            }
+        });
     </script>
 </body>
 </html>
