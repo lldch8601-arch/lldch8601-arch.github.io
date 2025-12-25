@@ -80,7 +80,6 @@
         .product-card:hover {
             transform: translateY(-5px);
         }
-        /* ========== 核心修改：图片加载样式优化 ========== */
         .product-img {
             width: 100%;
             height: 200px;
@@ -90,42 +89,21 @@
             background: #f0f0f0;
             opacity: 0;
             transition: opacity 0.3s ease-in-out;
-            position: relative;
         }
-        /* 加载中提示 */
-        .product-img::before {
-            content: "图片加载中...";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #666;
-            font-size: 12px;
-            background: #f0f0f0;
-            border-radius: 4px;
-        }
-        /* 加载成功：隐藏提示 */
         .product-img.loaded {
             opacity: 1;
         }
-        .product-img.loaded::before {
-            display: none;
-        }
-        /* 加载失败：提示+点击重试 */
+        /* 仅新增：失败样式添加可点击光标 + 提示文字 */
         .product-img.error {
-            opacity: 1;
-            cursor: pointer;
-        }
-        .product-img.error::before {
-            content: "图片加载失败，点击重试";
-            color: #f5222d;
             background: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 12px;
+            opacity: 1;
+            cursor: pointer; /* 新增：鼠标变成手型，提示可点击 */
         }
-        /* ========== 原有样式保留 ========== */
         .product-name {
             font-size: 14px;
             color: #333;
@@ -249,56 +227,57 @@
             });
         }
 
-        // ========== 核心新增：图片带重试加载函数 ==========
-        function loadImageWithRetry(img, retryCount = 0, maxRetry = 3) {
-            const realSrc = img.dataset.src;
-            if (!realSrc) return;
-
-            // 重置状态（清除之前的失败/成功样式）
-            img.classList.remove('loaded', 'error');
-            
-            // 创建新图片对象发起请求（避免直接操作img标签导致的缓存问题）
-            const image = new Image();
-            image.src = realSrc;
-
-            // 加载成功
-            image.onload = () => {
-                img.src = realSrc;
-                img.classList.add('loaded');
-                img.alt = img.dataset.alt || '商品图片';
-            };
-
-            // 加载失败：自动重试 或 显示手动重试
-            image.onerror = () => {
-                retryCount++;
-                if (retryCount <= maxRetry) {
-                    // 间隔1秒重试（避免频繁请求）
-                    setTimeout(() => loadImageWithRetry(img, retryCount, maxRetry), 1000);
-                } else {
-                    // 重试3次失败，显示手动重试
-                    img.classList.add('error');
-                    img.alt = '图片加载失败，点击重试';
-                    // 点击图片重新触发加载（单次有效，避免重复绑定）
-                    img.addEventListener('click', () => loadImageWithRetry(img, 0, maxRetry), { once: true });
-                }
-            };
-        }
-
-        // ========== 核心修改：重构懒加载逻辑 ==========
+        // 懒加载初始化（优化性能）
         function initLazyLoad() {
-            // 兼容低版本浏览器（无IntersectionObserver）
+            // 兼容低版本浏览器
             if (!('IntersectionObserver' in window)) {
-                document.querySelectorAll('.product-img').forEach(img => loadImageWithRetry(img));
+                document.querySelectorAll('.product-img').forEach(img => {
+                    img.src = img.dataset.src;
+                    img.classList.add('loaded');
+                });
                 return;
             }
 
-            // 配置观察者：提前100px加载
+            // 配置观察者：提前100px加载，提升体验
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         const img = entry.target;
-                        observer.unobserve(img); // 停止监听，避免重复触发
-                        loadImageWithRetry(img); // 调用带重试的加载函数
+                        const realSrc = img.dataset.src;
+
+                        // 定义图片重新加载函数（仅新增）
+                        const reloadImage = () => {
+                            img.classList.remove('error'); // 移除失败样式
+                            img.alt = '图片重新加载中...'; // 提示重新加载
+                            // 重新创建图片请求，避免缓存问题
+                            const newImg = new Image();
+                            newImg.src = realSrc + '?t=' + new Date().getTime(); // 加时间戳防缓存
+                            newImg.onload = () => {
+                                img.src = realSrc;
+                                img.classList.add('loaded');
+                                img.alt = img.dataset.alt || '商品图片';
+                            };
+                            newImg.onerror = () => {
+                                img.classList.add('error');
+                                img.alt = '点击重新加载'; // 提示点击重试
+                            };
+                        };
+
+                        // 加载真实图片
+                        img.src = realSrc;
+                        // 加载成功
+                        img.onload = () => {
+                            img.classList.add('loaded');
+                            observer.unobserve(img); // 停止监听，节省资源
+                        };
+                        // 加载失败兜底（仅修改这里，新增点击重试）
+                        img.onerror = () => {
+                            img.classList.add('error');
+                            img.alt = '点击重新加载'; // 提示文字改为可点击
+                            observer.unobserve(img);
+                            // 新增：点击图片触发重新加载
+                            img.addEventListener('click', reloadImage);
+                        };
                     }
                 });
             }, {
@@ -307,7 +286,9 @@
             });
 
             // 监听所有商品图片
-            document.querySelectorAll('.product-img').forEach(img => observer.observe(img));
+            document.querySelectorAll('.product-img').forEach(img => {
+                observer.observe(img);
+            });
         }
 
         // 渲染商品列表核心函数
@@ -349,7 +330,7 @@
                             data-src="${imgSrc}"
                             src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                             alt="${productName}"
-                            data-alt="${productName}"
+                            data-alt="${productName}" // 新增：存储商品名，方便加载后恢复alt
                         >
                         <div class="product-name">${productName}</div>
                         <div class="product-meta">上架时间：${publishTime}</div>
