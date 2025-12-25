@@ -20,7 +20,8 @@
             max-width: 1200px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            /* 调整列宽，适配更大的图片 */
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 20px;
         }
         .product-card {
@@ -35,27 +36,41 @@
         }
         .product-img {
             width: 100%;
-            height: 200px;
-            object-fit: cover;
+            /* 1. 增大展示高度，适配高清图 */
+            height: 280px;
+            /* 2. 改用contain避免图片拉伸（优先保证完整显示），也可保留cover但调整尺寸 */
+            object-fit: contain;
+            /* 3. 优化图片渲染算法，让高清图更清晰 */
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
             border-radius: 4px;
             margin-bottom: 10px;
+            /* 4. 图片加载时的过渡效果 */
+            transition: opacity 0.3s;
+            /* 初始透明，加载完成后显示 */
+            opacity: 0;
         }
-        /* 新增：图片加载失败的兜底样式 */
+        /* 图片加载完成后显示 */
+        .product-img.loaded {
+            opacity: 1;
+        }
+        /* 新增：图片加载失败的兜底样式（更友好） */
         .product-img[src=""] {
-            background: #eee;
+            background: #f8f8f8;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #999;
-            font-size: 12px;
-            content: "图片加载失败";
+            font-size: 14px;
+            border: 1px dashed #eee;
+            opacity: 1; /* 失败时直接显示兜底 */
         }
         .product-name {
-            font-size: 14px;
+            font-size: 15px; /* 略增大文字，适配更大的卡片 */
             color: #333;
-            line-height: 1.4;
+            line-height: 1.5;
             margin-bottom: 8px;
-            height: 42px;
+            height: 45px;
             overflow: hidden;
             text-overflow: ellipsis;
             display: -webkit-box;
@@ -63,19 +78,19 @@
             -webkit-box-orient: vertical;
         }
         .product-meta {
-            font-size: 12px;
+            font-size: 13px;
             color: #666;
             margin-bottom: 5px;
         }
         .product-link {
             display: inline-block;
             margin-top: 10px;
-            padding: 6px 12px;
+            padding: 8px 15px; /* 略增大按钮 */
             background: #1677ff;
             color: white;
             text-decoration: none;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 13px;
         }
         .product-link:hover {
             background: #0958d9;
@@ -84,6 +99,7 @@
             text-align: center;
             margin-bottom: 30px;
             color: #333;
+            font-size: 24px;
         }
         .loading {
             text-align: center;
@@ -91,7 +107,6 @@
             color: #666;
             padding: 50px 0;
         }
-        /* 新增：刷新提示样式（可选） */
         .refresh-tip {
             text-align: center;
             font-size: 12px;
@@ -104,16 +119,14 @@
     <h1 class="header"> CH-最强新品推荐（潜力爆款）</h1>
     <div class="loading" id="loading">加载中...</div>
     <div class="container" id="product-container"></div>
-    <!-- 新增：刷新提示 -->
     <div class="refresh-tip" id="refresh-tip">数据每5分钟自动刷新，当前时间：<span id="current-time"></span></div>
 
     <script>
-        // 你的JSON文件链接（备注：中文文件名在GitHub Raw中支持，但建议尽量用英文，避免编码问题）
+        // 你的JSON文件链接（建议把中文文件名改成英文，避免编码问题）
         const JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/%E6%96%B0%E5%93%81.json";
-        // 刷新间隔（毫秒）：5分钟=5*60*1000，可调整（比如10分钟=10*60*1000）
         const REFRESH_INTERVAL = 5 * 60 * 1000;
 
-        // 工具函数：格式化时间（用于刷新提示）
+        // 工具函数：格式化时间
         function formatTime() {
             const now = new Date();
             return now.toLocaleString("zh-CN");
@@ -125,27 +138,23 @@
             const containerEl = document.getElementById("product-container");
             const timeEl = document.getElementById("current-time");
             
-            // 更新当前时间
             timeEl.textContent = formatTime();
 
             try {
-                // 拉取JSON数据（加缓存控制，确保每次拉最新）
+                // 拉取JSON数据（强制不缓存）
                 const response = await fetch(JSON_URL, { cache: "no-cache" });
                 if (!response.ok) throw new Error(`HTTP错误：${response.status}`);
                 
                 const products = await response.json();
-                // 清空容器（避免重复渲染）
                 containerEl.innerHTML = "";
 
-                // 无数据时提示
                 if (products.length === 0) {
-                    containerEl.innerHTML = '<div style="text-align:center; width:100%; color:#666;">暂无商品数据</div>';
+                    containerEl.innerHTML = '<div style="text-align:center; width:100%; color:#666; padding:50px 0;">暂无商品数据</div>';
                     return;
                 }
 
                 // 遍历渲染商品卡片
                 products.forEach(product => {
-                    // 容错：字段为空时兜底
                     const imgSrc = product.图片链接 || "";
                     const productName = product.商品名称 || "未知商品";
                     const publishTime = product.上架时间 || "未知";
@@ -154,12 +163,28 @@
                     const card = document.createElement("div");
                     card.className = "product-card";
                     card.innerHTML = `
-                        <img class="product-img" src="${imgSrc}" alt="${productName}" onerror="this.src=''; this.alt='图片加载失败'">
+                        <img class="product-img" 
+                             src="${imgSrc}" 
+                             alt="${productName}" 
+                             loading="lazy"  <!-- 5. 懒加载：滚动到视图才加载，提升性能 -->
+                             onerror="this.src=''; this.alt='图片加载失败'">
                         <div class="product-name">${productName}</div>
                         <div class="product-meta">上架时间：${publishTime}</div>
-                        <a class="product-link" href="${productLink}" target="_blank">查看商品</a>
+                        <a class="product-link" href="${productLink}" target="_blank" rel="noopener">查看商品</a>
                     `;
                     containerEl.appendChild(card);
+
+                    // 监听图片加载完成，添加loaded类（显示图片）
+                    const imgEl = card.querySelector('.product-img');
+                    imgEl.onload = function() {
+                        this.classList.add('loaded');
+                    };
+                    // 加载失败也强制显示兜底
+                    imgEl.onerror = function() {
+                        this.src = "";
+                        this.alt = "图片加载失败";
+                        this.classList.add('loaded');
+                    };
                 });
 
             } catch (error) {
@@ -174,13 +199,11 @@
         window.onload = async function() {
             await renderProducts();
 
-            // ========== 自动刷新逻辑（可按需删除） ==========
-            // 如果要删除自动刷新，直接删掉下面这一段即可
+            // 自动刷新逻辑
             setInterval(async () => {
                 console.log("自动刷新数据...");
                 await renderProducts();
             }, REFRESH_INTERVAL);
-            // ========== 自动刷新逻辑结束 ==========
         };
     </script>
 </body>
