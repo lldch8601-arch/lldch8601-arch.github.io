@@ -5,20 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CH-最强新品推荐</title>
     <style>
-        /* 原有样式保留，新增/修改以下样式 */
+        /* 导航栏样式（和主页一致） */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: "Microsoft Yahei", sans-serif;
         }
+        .nav-header {
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 0 20px;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+        .logo {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1677ff;
+            text-decoration: none;
+        }
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        .nav-menu li a {
+            text-decoration: none;
+            color: #333;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        .nav-menu li a:hover {
+            color: #1677ff;
+        }
+        .nav-menu li a.active {
+            color: #1677ff;
+            font-weight: bold;
+        }
+        .mobile-menu-btn {
+            display: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #333;
+        }
+        /* 原有新品页面样式 */
         body {
             background: #f5f5f5;
             padding: 20px;
         }
         .container {
             max-width: 1200px;
-            margin: 0 auto;
+            margin: 20px auto 0;
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 20px;
@@ -39,16 +86,13 @@
             object-fit: cover;
             border-radius: 4px;
             margin-bottom: 10px;
-            /* 新增：懒加载占位背景 + 渐显动画 */
             background: #f0f0f0;
             opacity: 0;
             transition: opacity 0.3s ease-in-out;
         }
-        /* 图片加载完成后显示 */
         .product-img.loaded {
             opacity: 1;
         }
-        /* 图片加载失败样式 */
         .product-img.error {
             background: #eee;
             display: flex;
@@ -56,8 +100,7 @@
             justify-content: center;
             color: #999;
             font-size: 12px;
-            content: "图片加载失败";
-            opacity: 1; /* 失败时直接显示占位 */
+            opacity: 1;
         }
         .product-name {
             font-size: 14px;
@@ -93,6 +136,7 @@
             text-align: center;
             margin-bottom: 30px;
             color: #333;
+            margin-top: 20px;
         }
         .loading {
             text-align: center;
@@ -106,27 +150,69 @@
             color: #999;
             margin-top: 20px;
         }
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+                position: absolute;
+                top: 60px;
+                left: 0;
+                right: 0;
+                background: #fff;
+                flex-direction: column;
+                padding: 20px;
+                gap: 20px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+            .nav-menu.show {
+                display: flex;
+            }
+            .mobile-menu-btn {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- 导航栏（和主页一致） -->
+    <header class="nav-header">
+        <div class="nav-container">
+            <a href="index.html" class="logo">CH-商品推荐</a>
+            <div class="mobile-menu-btn" id="mobileMenuBtn">☰</div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="products.html" class="active">最强新品推荐（潜力爆款）</a></li>
+                <li><a href="#">其他分类1（可扩展）</a></li>
+                <li><a href="#">其他分类2（可扩展）</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- 原有新品页面内容 -->
     <h1 class="header"> CH-最强新品推荐（潜力爆款）</h1>
     <div class="loading" id="loading">加载中...</div>
     <div class="container" id="product-container"></div>
     <div class="refresh-tip" id="refresh-tip">数据每5分钟自动刷新，当前时间：<span id="current-time"></span></div>
 
     <script>
+        // 移动端菜单逻辑
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const navMenu = document.getElementById('navMenu');
+        mobileMenuBtn.addEventListener('click', () => {
+            navMenu.classList.toggle('show');
+            mobileMenuBtn.textContent = navMenu.classList.contains('show') ? '←' : '☰';
+        });
+
+        // 原有新品页面逻辑
         const JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/%E6%96%B0%E5%93%81.json";
         const REFRESH_INTERVAL = 5 * 60 * 1000;
 
-        // 工具函数：格式化时间
         function formatTime() {
             const now = new Date();
             return now.toLocaleString("zh-CN");
         }
 
-        // ========== 新增：懒加载初始化函数 ==========
         function initLazyLoad() {
-            // 兼容：如果浏览器不支持IntersectionObserver，直接加载所有图片
             if (!('IntersectionObserver' in window)) {
                 document.querySelectorAll('.product-img').forEach(img => {
                     img.src = img.dataset.src;
@@ -135,21 +221,16 @@
                 return;
             }
 
-            // 创建观察者：监听图片是否进入可视区域
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
-                    if (entry.isIntersecting) { // 图片进入视口
+                    if (entry.isIntersecting) {
                         const img = entry.target;
                         const realSrc = img.dataset.src;
-
-                        // 加载真实图片
                         img.src = realSrc;
-                        // 图片加载完成
                         img.onload = () => {
                             img.classList.add('loaded');
-                            observer.unobserve(img); // 停止监听，节省性能
+                            observer.unobserve(img);
                         };
-                        // 图片加载失败
                         img.onerror = () => {
                             img.classList.add('error');
                             img.alt = '图片加载失败';
@@ -158,17 +239,15 @@
                     }
                 });
             }, {
-                rootMargin: '100px 0px', // 提前100px加载（滚动时无延迟）
-                threshold: 0.1 // 图片10%进入视口时触发
+                rootMargin: '100px 0px',
+                threshold: 0.1
             });
 
-            // 监听所有懒加载图片
             document.querySelectorAll('.product-img').forEach(img => {
                 observer.observe(img);
             });
         }
 
-        // 核心函数：渲染商品数据
         async function renderProducts() {
             const loadingEl = document.getElementById("loading");
             const containerEl = document.getElementById("product-container");
@@ -188,7 +267,6 @@
                     return;
                 }
 
-                // 遍历渲染商品卡片
                 products.forEach(product => {
                     const imgSrc = product.图片链接 || "";
                     const productName = product.商品名称 || "未知商品";
@@ -197,12 +275,11 @@
 
                     const card = document.createElement("div");
                     card.className = "product-card";
-                    // ========== 修改：图片用data-src存真实链接，src放透明占位图 ==========
                     card.innerHTML = `
                         <img 
                             class="product-img" 
-                            data-src="${imgSrc}"  // 真实链接存在data-src
-                            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"  // 1px透明占位图
+                            data-src="${imgSrc}"
+                            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                             alt="${productName}"
                         >
                         <div class="product-name">${productName}</div>
@@ -212,7 +289,6 @@
                     containerEl.appendChild(card);
                 });
 
-                // ========== 渲染完成后初始化懒加载 ==========
                 initLazyLoad();
 
             } catch (error) {
@@ -223,11 +299,8 @@
             }
         }
 
-        // 页面加载时首次渲染
         window.onload = async function() {
             await renderProducts();
-
-            // 自动刷新逻辑
             setInterval(async () => {
                 console.log("自动刷新数据...");
                 await renderProducts();
