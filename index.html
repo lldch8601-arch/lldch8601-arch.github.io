@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH-商品推荐主页</title>
+    <style>
+        /* 重置样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft Yahei", sans-serif;
+        }
+        body {
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        /* 导航栏样式 */
+        .nav-header {
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 0 20px;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+        .logo {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1677ff;
+            text-decoration: none;
+        }
+        /* 桌面端菜单 */
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        .nav-menu li a {
+            text-decoration: none;
+            color: #333;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        .nav-menu li a:hover {
+            color: #1677ff;
+        }
+        .nav-menu li a.active {
+            color: #1677ff;
+            font-weight: bold;
+        }
+        /* 移动端菜单按钮（屏幕<768px时显示） */
+        .mobile-menu-btn {
+            display: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #333;
+        }
+        /* 主页内容区 */
+        .home-container {
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 0 20px;
+            text-align: center;
+        }
+        .home-title {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .home-desc {
+            font-size: 16px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 40px;
+        }
+        .btn-go-products {
+            display: inline-block;
+            padding: 10px 30px;
+            background: #1677ff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+        .btn-go-products:hover {
+            background: #0958d9;
+        }
+        /* 响应式适配（移动端） */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+                position: absolute;
+                top: 60px;
+                left: 0;
+                right: 0;
+                background: #fff;
+                flex-direction: column;
+                padding: 20px;
+                gap: 20px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+            .nav-menu.show {
+                display: flex;
+            }
+            .mobile-menu-btn {
+                display: block;
+            }
+            .home-title {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <header class="nav-header">
+        <div class="nav-container">
+            <a href="index.html" class="logo">CH-商品推荐</a>
+            <!-- 移动端菜单按钮 -->
+            <div class="mobile-menu-btn" id="mobileMenuBtn">☰</div>
+            <!-- 导航菜单 -->
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html" class="active">首页</a></li>
+                <li><a href="products.html">最强新品推荐（潜力爆款）</a></li>
+                <li><a href="#">其他分类1（可扩展）</a></li>
+                <li><a href="#">其他分类2（可扩展）</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- 主页内容 -->
+    <main class="home-container">
+        <h1 class="home-title">欢迎来到CH-商品推荐平台</h1>
+        <p class="home-desc">
+            专注于挖掘潜力爆款新品，为您推荐高性价比、高销量的优质商品。<br>
+            点击下方按钮或导航菜单，查看最新的新品推荐列表。
+        </p>
+        <a href="products.html" class="btn-go-products">查看最强新品推荐</a>
+    </main>
+
+    <script>
+        // 移动端菜单展开/收起逻辑
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const navMenu = document.getElementById('navMenu');
+        
+        mobileMenuBtn.addEventListener('click', () => {
+            navMenu.classList.toggle('show');
+            // 切换菜单图标（☰ ←）
+            mobileMenuBtn.textContent = navMenu.classList.contains('show') ? '←' : '☰';
+        });
+    </script>
+</body>
+</html>
