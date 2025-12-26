@@ -83,6 +83,13 @@
             line-height: 1.6;
             margin-bottom: 40px;
         }
+        /* 新增：按钮组样式，保持间距 */
+        .btn-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
         .btn-go-products {
             display: inline-block;
             padding: 10px 30px;
@@ -119,6 +126,14 @@
             .home-title {
                 font-size: 24px;
             }
+            /* 移动端按钮组垂直排列 */
+            .btn-group {
+                flex-direction: column;
+                align-items: center;
+            }
+            .btn-go-products {
+                width: 80%;
+            }
         }
     </style>
 </head>
@@ -129,24 +144,29 @@
             <a href="index.html" class="logo">CH-商品推荐</a>
             <!-- 移动端菜单按钮 -->
             <div class="mobile-menu-btn" id="mobileMenuBtn">☰</div>
-            <!-- 导航菜单 -->
+            <!-- 导航菜单：新增“同期热销品”项 -->
             <ul class="nav-menu" id="navMenu">
                 <li><a href="index.html" class="active">首页</a></li>
                 <li><a href="new_pro.html">最强新品推荐（潜力爆款）</a></li>
+                <li><a href="s_periods_bestsellers.html">同期热销品</a></li> <!-- 新增 -->
                 <li><a href="#">其他分类1（可扩展）</a></li>
                 <li><a href="#">其他分类2（可扩展）</a></li>
             </ul>
         </div>
     </header>
 
-    <!-- 主页内容 -->
+    <!-- 主页内容：新增“同期热销品”按钮 -->
     <main class="home-container">
         <h1 class="home-title">欢迎来到CH-商品推荐平台</h1>
         <p class="home-desc">
             专注于挖掘潜力爆款新品，为您推荐高性价比、高销量的优质商品。<br>
-            点击下方按钮或导航菜单，查看最新的新品推荐列表。
+            点击下方按钮或导航菜单，查看最新的商品推荐列表。
         </p>
-        <a href="new_pro.html" class="btn-go-products">查看最强新品推荐</a>
+        <!-- 新增：按钮组，包含原有和新增按钮 -->
+        <div class="btn-group">
+            <a href="new_pro.html" class="btn-go-products">查看最强新品推荐</a>
+            <a href="s_periods_bestsellers.html" class="btn-go-products">查看同期热销品</a> <!-- 新增 -->
+        </div>
     </main>
 
     <script>
