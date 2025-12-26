@@ -306,50 +306,82 @@
                 second: '2-digit'
             });
         }
-
-        // 懒加载初始化
+        
+        // 重写initLazyLoad函数，添加预加载逻辑
         function initLazyLoad() {
-            if (!('IntersectionObserver' in window)) {
-                document.querySelectorAll('.product-img').forEach(img => {
-                    img.src = img.dataset.src;
+            const allImgElements = Array.from(document.querySelectorAll('.product-img'));
+            let loadedCount = 0; // 已加载完成的图片数量
+            const preloadCount = 5; // 预加载后面的5张图片（可根据需求调整）
+
+            // 1. 基础懒加载逻辑（保留原有）
+            const loadSingleImg = (img) => {
+                if (img.classList.contains('loaded') || img.classList.contains('error')) return;
+                
+                const realSrc = img.dataset.src;
+                const reloadImage = () => {
+                    img.classList.remove('error');
+                    img.alt = '图片重新加载中...';
+                    const newImg = new Image();
+                    newImg.src = realSrc + '?t=' + new Date().getTime();
+                    newImg.onload = () => {
+                        img.src = realSrc;
+                        img.classList.add('loaded');
+                        img.alt = img.dataset.alt || '商品图片';
+                        loadedCount++; // 加载完成，计数+1
+                        checkPreload(); // 检查是否需要预加载后面的图片
+                    };
+                    newImg.onerror = () => {
+                        img.classList.add('error');
+                        img.alt = '点击重新加载';
+                        loadedCount++; // 即使失败，也计入已处理
+                        checkPreload();
+                    };
+                };
+
+                img.src = realSrc;
+                img.onload = () => {
                     img.classList.add('loaded');
-                });
+                    observer.unobserve(img);
+                    loadedCount++;
+                    checkPreload();
+                };
+                img.onerror = () => {
+                    img.classList.add('error');
+                    img.alt = '点击重新加载';
+                    observer.unobserve(img);
+                    img.addEventListener('click', reloadImage);
+                    loadedCount++;
+                    checkPreload();
+                };
+            };
+
+            // 2. 预加载逻辑：加载完当前可见的，主动加载后面的N张
+            const checkPreload = () => {
+                // 找到第一个未加载的图片的索引
+                const firstUnloadedIndex = allImgElements.findIndex(img => 
+                    !img.classList.contains('loaded') && !img.classList.contains('error')
+                );
+                // 如果有未加载的，且已加载数达标，预加载后面的preloadCount张
+                if (firstUnloadedIndex !== -1) {
+                    const preloadEndIndex = Math.min(firstUnloadedIndex + preloadCount, allImgElements.length);
+                    // 遍历要预加载的图片，主动加载
+                    for (let i = firstUnloadedIndex; i < preloadEndIndex; i++) {
+                        loadSingleImg(allImgElements[i]);
+                    }
+                }
+            };
+
+            // 3. 原有IntersectionObserver逻辑（触发懒加载）
+            if (!('IntersectionObserver' in window)) {
+                allImgElements.forEach(img => loadSingleImg(img));
                 return;
             }
 
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
-                        const img = entry.target;
-                        const realSrc = img.dataset.src;
-
-                        const reloadImage = () => {
-                            img.classList.remove('error');
-                            img.alt = '图片重新加载中...';
-                            const newImg = new Image();
-                            newImg.src = realSrc + '?t=' + new Date().getTime();
-                            newImg.onload = () => {
-                                img.src = realSrc;
-                                img.classList.add('loaded');
-                                img.alt = img.dataset.alt || '商品图片';
-                            };
-                            newImg.onerror = () => {
-                                img.classList.add('error');
-                                img.alt = '点击重新加载';
-                            };
-                        };
-
-                        img.src = realSrc;
-                        img.onload = () => {
-                            img.classList.add('loaded');
-                            observer.unobserve(img);
-                        };
-                        img.onerror = () => {
-                            img.classList.add('error');
-                            img.alt = '点击重新加载';
-                            observer.unobserve(img);
-                            img.addEventListener('click', reloadImage);
-                        };
+                        loadSingleImg(entry.target);
+                        observer.unobserve(entry.target);
                     }
                 });
             }, {
@@ -357,9 +389,12 @@
                 threshold: 0.1
             });
 
-            document.querySelectorAll('.product-img').forEach(img => {
+            allImgElements.forEach(img => {
                 observer.observe(img);
             });
+
+            // 初始化时先加载视口内的，然后触发预加载
+            setTimeout(checkPreload, 500);
         }
 
         // 渲染商品列表核心函数
