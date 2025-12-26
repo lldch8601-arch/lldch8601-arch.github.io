@@ -4,11 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CH-同期3月热销品</title>
-    <!-- ========== 新增：网络层面优化 ========== -->
-    <link rel="preconnect" href="https://raw.githubusercontent.com">
-    <link rel="dns-prefetch" href="https://raw.githubusercontent.com">
-    <link rel="preconnect" href="https://p3-flow-imagex-sign.byteimg.com">
-    <link rel="dns-prefetch" href="https://p3-flow-imagex-sign.byteimg.com">
     <style>
         /* 导航栏样式（仅保留PC端） */
         * {
@@ -114,8 +109,6 @@
             background: #f0f0f0;
             opacity: 0;
             transition: opacity 0.3s ease-in-out;
-            /* ========== 新增：图片加载优先级 ========== */
-            content-visibility: auto;
         }
         .product-img.loaded {
             opacity: 1;
@@ -205,36 +198,14 @@
             font-size: 14px;
             color: #333;
         }
-        /* 骨架屏样式（优化：更轻量） */
+        /* 简化骨架屏（仅静态占位，无动画） */
         .skeleton-card {
             background: white;
             border-radius: 8px;
             padding: 15px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             height: 380px;
-            position: relative;
-            overflow: hidden;
-            /* ========== 新增：骨架屏性能优化 ========== */
-            content-visibility: auto;
-        }
-        .skeleton-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, 
-                #f0f0f0 0%, 
-                #e0e0e0 50%, 
-                #f0f0f0 100%);
-            animation: shimmer 1.5s infinite;
-            /* ========== 新增：减少动画开销 ========== */
-            will-change: transform;
-        }
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+            background: #f5f5f5;
         }
         .fade-out {
             animation: fadeOut 0.3s ease-out forwards;
@@ -276,16 +247,13 @@
     <div class="refresh-tip" id="refresh-tip">数据自动刷新，当前时间：<span id="current-time"></span></div>
 
     <script>
-        // ========== 核心优化1：全局常量提前定义 + 缓存配置 ==========
-        const CACHE_KEY = 'product_data_cache';
-        const CACHE_EXPIRE = 10 * 60 * 1000; // 缓存10分钟
-        const JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/main/march_bestsellers.json";
-        const FALLBACK_JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/march_bestsellers.json";
-        const REFRESH_INTERVAL = 5 * 60 * 1000;
-        const PAGE_SIZE = 10;
+        // 核心配置
+        const JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/march_bestsellers.json";
+        const REFRESH_INTERVAL = 5 * 60 * 1000; // 5分钟刷新
+        const PAGE_SIZE = 10; // 每页10条
         
-        // 全局状态（精简）
-        let currentPage = 0;
+        // 全局状态
+        let currentPage = 1;
         let totalData = [];
         let filteredData = [];
         let currentFilter = "";
@@ -293,31 +261,13 @@
         let hasMore = true;
         let isFirstLoad = true;
 
-        // 图片加载配置（优化并发数）
-        const MAX_IMAGE_CONCURRENT = 6; // 首屏图片并发数提高到6
+        // 图片加载配置（恢复原始并发数，简化逻辑）
+        const MAX_IMAGE_CONCURRENT = 3;
         let imageLoadQueue = [];
         let currentLoadingCount = 0;
 
-        // ========== 核心优化2：提前加载缓存数据（不等待window.onload） ==========
-        let cachedData = null;
-        try {
-            const cacheStr = localStorage.getItem(CACHE_KEY);
-            if (cacheStr) {
-                const cacheObj = JSON.parse(cacheStr);
-                // 检查缓存是否过期
-                if (Date.now() - cacheObj.timestamp < CACHE_EXPIRE) {
-                    cachedData = cacheObj.data;
-                    console.log('使用本地缓存数据，跳过网络请求');
-                } else {
-                    localStorage.removeItem(CACHE_KEY); // 清理过期缓存
-                }
-            }
-        } catch (e) {
-            console.warn('读取缓存失败', e);
-        }
-
-        // ========== 核心优化3：立即渲染骨架屏（0延迟） ==========
-        (function showSkeletonScreen(count = 8) {
+        // 初始化骨架屏（静态占位，无动画）
+        function showSkeletonScreen(count = 8) {
             const container = document.getElementById('product-container');
             container.innerHTML = '';
             for (let i = 0; i < count; i++) {
@@ -326,37 +276,27 @@
                 container.appendChild(skeleton);
             }
             document.getElementById('initialLoading').style.display = 'none';
-        })();
-
-        // 带超时的fetch（优化超时时间）
-        function fetchWithTimeout(url, options = {}, timeout = 6000) { // 超时从10s缩短到6s
-            return Promise.race([
-                fetch(url, options),
-                new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('请求超时')), timeout)
-                )
-            ]);
         }
 
-        // 重试机制（优化重试间隔）
-        async function retryFetch(url, maxRetries = 1) {
-            for (let i = 0; i <= maxRetries; i++) {
-                try {
-                    const response = await fetchWithTimeout(
-                        url + '?t=' + Date.now(), 
-                        { cache: "no-store" },
-                        5000 // 单次请求超时5s
-                    );
-                    if (!response.ok) throw new Error(`HTTP错误：${response.status}`);
-                    return await response.json();
-                } catch (error) {
-                    if (i === maxRetries) throw error;
-                    await new Promise(resolve => setTimeout(resolve, 500 * (i + 1))); // 重试间隔从1s缩短到0.5s
-                }
-            }
+        // 移除骨架屏
+        function removeSkeletonScreen() {
+            const skeletons = document.querySelectorAll('.skeleton-card');
+            skeletons.forEach(skeleton => skeleton.remove());
         }
 
-        // 图片压缩函数（保持不变）
+        // 格式化时间
+        function formatTime() {
+            return new Date().toLocaleString("zh-CN", {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // 图片压缩函数（核心优化：统一替换为300尺寸）
         function optimizeAmazonImageUrl(originalUrl) {
             if (!originalUrl || !originalUrl.includes("amazon.com/images/")) {
                 return originalUrl;
@@ -364,7 +304,7 @@
             return originalUrl.replace(/_AC_SL\d+_/g, "_AC_SL300_");
         }
 
-        // ========== 核心优化4：图片加载队列（极致优化） ==========
+        // 处理图片加载队列（简化版）
         function processImageQueue() {
             if (imageLoadQueue.length === 0 || currentLoadingCount >= MAX_IMAGE_CONCURRENT) {
                 return;
@@ -373,101 +313,75 @@
             currentLoadingCount++;
 
             const newImg = new Image();
-            newImg.src = imgItem.src + '?t=' + Date.now();
-            // ========== 新增：图片加载优先级 ==========
-            newImg.fetchPriority = imgItem.isFirstScreen ? 'high' : 'low';
+            newImg.src = imgItem.src + '?t=' + new Date().getTime();
             
             newImg.onload = () => {
                 imgItem.element.src = imgItem.src;
                 imgItem.element.classList.add('loaded');
+                imgItem.element.alt = imgItem.alt;
                 currentLoadingCount--;
                 processImageQueue();
             };
             
             newImg.onerror = () => {
-                if (!imgItem.retried) {
-                    imgItem.retried = true;
-                    imageLoadQueue.unshift(imgItem);
-                } else {
-                    imgItem.element.classList.add('error');
-                    imgItem.element.addEventListener('click', () => {
-                        imgItem.element.classList.remove('error');
-                        setTimeout(() => {
-                            imageLoadQueue.unshift(imgItem);
-                            processImageQueue();
-                        }, 500);
-                    }, { once: true });
-                }
+                imgItem.element.classList.add('error');
+                imgItem.element.alt = '点击重新加载';
+                imgItem.element.addEventListener('click', () => {
+                    setTimeout(() => {
+                        imageLoadQueue.unshift(imgItem);
+                        processImageQueue();
+                    }, 2000);
+                }, { once: true });
                 currentLoadingCount--;
                 processImageQueue();
             };
         }
 
-        // 懒加载初始化（优化首屏优先级）
+        // 懒加载初始化（简化版）
         function initLazyLoad() {
             imageLoadQueue = [];
             currentLoadingCount = 0;
 
-            const allImages = Array.from(document.querySelectorAll('.product-img'));
-            if (allImages.length === 0) return;
-
-            const viewportHeight = window.innerHeight;
-            allImages.forEach((img, index) => {
-                const rect = img.getBoundingClientRect();
-                const isFirstScreen = rect.top < viewportHeight + 200 || index < 6; // 首屏前6张
-                
-                imageLoadQueue.push({
-                    element: img,
-                    src: img.dataset.src,
-                    alt: img.dataset.alt || '热销品图片',
-                    retried: false,
-                    isFirstScreen: isFirstScreen // 标记首屏图片
-                });
-            });
-
-            // 首屏图片优先加载
-            imageLoadQueue.sort((a, b) => b.isFirstScreen - a.isFirstScreen);
-            processImageQueue();
-
-            // 简化IntersectionObserver（减少开销）
-            if ('IntersectionObserver' in window) {
-                const observer = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const img = entry.target;
-                            if (!img.dataset.observed) {
-                                img.dataset.observed = true;
-                                imageLoadQueue.push({
-                                    element: img,
-                                    src: img.dataset.src,
-                                    alt: img.dataset.alt || '热销品图片',
-                                    retried: false,
-                                    isFirstScreen: false
-                                });
-                                processImageQueue();
-                            }
-                            observer.unobserve(img);
-                        }
+            if (!('IntersectionObserver' in window)) {
+                document.querySelectorAll('.product-img').forEach(img => {
+                    imageLoadQueue.push({
+                        element: img,
+                        src: img.dataset.src,
+                        alt: img.dataset.alt || '热销品图片'
                     });
-                }, { rootMargin: '300px 0px', threshold: 0.01 });
+                });
+                processImageQueue();
+                return;
+            }
 
-                allImages.forEach(img => {
-                    const rect = img.getBoundingClientRect();
-                    if (rect.top >= viewportHeight + 200) {
-                        observer.observe(img);
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        imageLoadQueue.push({
+                            element: img,
+                            src: img.dataset.src,
+                            alt: img.dataset.alt || '热销品图片'
+                        });
+                        processImageQueue();
+                        observer.unobserve(img);
                     }
                 });
-            }
+            }, { rootMargin: '200px 0px', threshold: 0.01 });
+
+            document.querySelectorAll('.product-img').forEach(img => {
+                observer.observe(img);
+            });
         }
 
-        // 筛选数据（保持不变）
+        // 筛选数据
         function filterData() {
             filteredData = currentFilter 
                 ? totalData.filter(item => item.shipping_method === currentFilter)
                 : [...totalData];
         }
 
-        // 渲染数据（优化：减少setTimeout延迟）
+        // 渲染数据
         function renderPageData(pageNum) {
             filterData();
             const startIndex = (pageNum - 1) * PAGE_SIZE;
@@ -491,9 +405,9 @@
                     <img 
                         class="product-img" 
                         data-src="${imgSrc}"
-                        data-alt="${productTitle}"
                         src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
-                        alt="加载中..."
+                        alt="${productTitle}"
+                        data-alt="${productTitle}"
                         loading="lazy"
                     >
                     <div class="product-name" data-title="${productTitle}">${productTitle}</div>
@@ -509,63 +423,31 @@
                 containerEl.appendChild(card);
             });
 
-            // 移除骨架屏（无延迟）
+            // 首次加载移除骨架屏
             if (isFirstLoad && pageNum === 1) {
                 removeSkeletonScreen();
                 isFirstLoad = false;
             }
 
-            // 立即初始化图片加载（去掉100ms延迟）
             initLazyLoad();
-            
             isLoading = false;
             document.getElementById('loadMoreTip').textContent = hasMore ? '上拉加载更多' : '没有更多数据了';
             document.getElementById('loadMoreTip').style.display = hasMore ? 'block' : 'none';
         }
 
-        // ========== 核心优化5：加载数据（优先用缓存） ==========
+        // 加载全量数据（简化版：无缓存/重试）
         async function loadAllData() {
-            try {
-                // 优先使用缓存数据
-                if (cachedData) {
-                    totalData = cachedData["march_bestsellers"] || [];
-                    filteredData = [...totalData];
-                    currentPage = 1;
-                    hasMore = totalData.length > 0;
-                    renderPageData(currentPage);
-                    
-                    // 后台异步刷新缓存（不阻塞UI）
-                    setTimeout(async () => {
-                        try {
-                            const freshData = await retryFetch(JSON_URL, 1);
-                            localStorage.setItem(CACHE_KEY, JSON.stringify({
-                                timestamp: Date.now(),
-                                data: freshData
-                            }));
-                            console.log('后台刷新缓存成功');
-                        } catch (e) {
-                            console.warn('后台刷新缓存失败', e);
-                        }
-                    }, 2000);
-                    return true;
-                }
+            // 首次加载显示骨架屏
+            if (isFirstLoad) showSkeletonScreen();
 
-                // 无缓存，发起网络请求
-                let jsonData;
-                try {
-                    jsonData = await retryFetch(JSON_URL, 1);
-                } catch (error) {
-                    jsonData = await retryFetch(FALLBACK_JSON_URL, 1);
-                }
+            try {
+                const response = await fetch(JSON_URL, { cache: "no-cache" });
+                if (!response.ok) throw new Error(`HTTP错误：${response.status}`);
                 
-                // 缓存数据到本地
-                localStorage.setItem(CACHE_KEY, JSON.stringify({
-                    timestamp: Date.now(),
-                    data: jsonData
-                }));
-                
+                const jsonData = await response.json();
                 totalData = jsonData["march_bestsellers"] || [];
                 filteredData = [...totalData];
+                
                 currentPage = 1;
                 hasMore = totalData.length > 0;
                 renderPageData(currentPage);
@@ -573,6 +455,8 @@
                 return true;
             } catch (error) {
                 console.error("数据加载失败：", error);
+                removeSkeletonScreen();
+                
                 const container = document.getElementById('product-container');
                 container.innerHTML = `
                     <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px;">
@@ -581,28 +465,32 @@
                         <button id="retryBtn" style="padding: 8px 16px; background: #1677ff; color: white; border: none; border-radius: 4px; cursor: pointer;">重新加载</button>
                     </div>
                 `;
-                removeSkeletonScreen();
+                
+                // 重试按钮
                 document.getElementById('retryBtn').addEventListener('click', async () => {
                     document.getElementById('product-container').innerHTML = '';
-                    showSkeletonScreen();
+                    isFirstLoad = true;
                     await loadAllData();
                 });
+                
                 return false;
             }
         }
 
-        // 加载下一页（保持不变）
+        // 加载下一页
         async function loadNextPage() {
             if (isLoading || !hasMore) return;
+            
             isLoading = true;
             const loadMoreTip = document.getElementById('loadMoreTip');
             loadMoreTip.textContent = '加载中...';
             loadMoreTip.style.display = 'block';
+            
             currentPage++;
             renderPageData(currentPage);
         }
 
-        // 滚动监听（优化防抖时间）
+        // 滚动监听（简化防抖）
         function listenScroll() {
             let scrollTimer;
             window.addEventListener('scroll', () => {
@@ -611,19 +499,21 @@
                     const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
                     const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
                     const clientHeight = document.documentElement.clientHeight || window.innerHeight;
+                    
                     if (scrollTop + clientHeight >= scrollHeight - 200) {
                         loadNextPage();
                     }
-                }, 50); // 防抖时间从100ms缩短到50ms
+                }, 50);
             });
         }
 
-        // 筛选按钮（保持不变）
+        // 筛选按钮逻辑
         function initFilterButtons() {
             const filterBtns = document.querySelectorAll('.sidebar-btn');
             filterBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
                     const targetFilter = btn.dataset.filter;
+                    
                     if (currentFilter === targetFilter) {
                         btn.classList.remove('active');
                         currentFilter = "";
@@ -632,6 +522,8 @@
                         btn.classList.add('active');
                         currentFilter = targetFilter;
                     }
+                    
+                    // 重置分页重新渲染
                     currentPage = 1;
                     hasMore = true;
                     document.getElementById('product-container').innerHTML = '';
@@ -640,20 +532,24 @@
             });
         }
 
-        // Title弹窗（保持不变）
+        // Title弹窗功能（核心优化保留）
         function initTitlePopup() {
             let popupEl = document.createElement('div');
             popupEl.className = 'title-popup';
             document.body.appendChild(popupEl);
+
             document.addEventListener('click', (e) => {
                 const titleEl = e.target.closest('.product-name');
                 if (titleEl) {
                     const fullTitle = titleEl.dataset.title;
                     popupEl.textContent = fullTitle;
                     popupEl.style.display = 'block';
+                    
                     const rect = titleEl.getBoundingClientRect();
                     popupEl.style.top = `${rect.bottom + 5}px`;
                     popupEl.style.left = `${rect.left}px`;
+                    
+                    // 防止弹窗超出视口
                     if (popupEl.getBoundingClientRect().right > window.innerWidth) {
                         popupEl.style.left = `${window.innerWidth - popupEl.offsetWidth - 10}px`;
                     }
@@ -663,60 +559,33 @@
             });
         }
 
-        // 移除骨架屏（简化）
-        function removeSkeletonScreen() {
-            const skeletons = document.querySelectorAll('.skeleton-card');
-            skeletons.forEach(skeleton => {
-                skeleton.classList.add('fade-out');
-                setTimeout(() => skeleton.remove(), 300);
-            });
-        }
-
-        // 格式化时间（保持不变）
-        function formatTime() {
-            return new Date().toLocaleString("zh-CN", {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-        }
-
-        // ========== 核心优化6：页面初始化（极简延迟） ==========
+        // 页面初始化
         window.addEventListener('DOMContentLoaded', async () => {
-            // 立即更新时间
+            // 初始化时间显示
             document.getElementById('current-time').textContent = formatTime();
             setInterval(() => {
                 document.getElementById('current-time').textContent = formatTime();
             }, 1000);
 
-            // 立即加载数据（无延迟）
+            // 加载数据+初始化功能
             await loadAllData();
             listenScroll();
             initFilterButtons();
             initTitlePopup();
 
-            // 自动刷新（延迟10秒启动）
+            // 自动刷新逻辑
             setTimeout(() => {
                 const refreshInterval = setInterval(async () => {
-                    try {
-                        const success = await loadAllData();
-                        if (success) console.log("数据刷新成功");
-                    } catch (e) {
-                        console.error("自动刷新失败", e);
-                    }
+                    console.log("自动刷新数据...");
+                    isFirstLoad = true;
+                    totalData = [];
+                    document.getElementById('product-container').innerHTML = '';
+                    await loadAllData();
                 }, REFRESH_INTERVAL);
+                
+                // 页面卸载清除定时器
                 window.addEventListener('beforeunload', () => clearInterval(refreshInterval));
             }, 10000);
-        });
-
-        // 备用：如果DOMContentLoaded触发晚，降级到load
-        window.addEventListener('load', async () => {
-            if (totalData.length === 0) {
-                await loadAllData();
-            }
         });
     </script>
 </body>
