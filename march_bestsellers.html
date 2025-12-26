@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CH-同期3月热销品</title>
     <style>
-        /* 导航栏样式（和主页一致） */
+        /* 导航栏样式（仅保留PC端） */
         * {
             margin: 0;
             padding: 0;
@@ -52,20 +52,42 @@
             color: #1677ff;
             font-weight: bold;
         }
-        .mobile-menu-btn {
-            display: none;
-            font-size: 20px;
-            cursor: pointer;
-            color: #333;
-        }
-        /* 页面核心样式 */
+        /* 移除移动端菜单按钮样式 */
+        /* 页面核心样式（仅PC端） */
         body {
             background: #f5f5f5;
             padding: 20px;
         }
-        .container {
+        /* 新增：侧边栏+主内容布局（仅PC端） */
+        .main-content {
+            display: flex;
             max-width: 1200px;
             margin: 20px auto 0;
+            gap: 20px;
+        }
+        /* 左侧筛选栏样式（仅PC端，无全部按钮） */
+        .sidebar {
+            width: 80px;
+            flex-shrink: 0; /* 固定宽度不收缩 */
+        }
+        .sidebar-btn {
+            display: block;
+            width: 100%;
+            padding: 10px 0;
+            margin-bottom: 10px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .sidebar-btn:hover, .sidebar-btn.active {
+            background: #1677ff;
+            color: white;
+        }
+        /* 商品容器样式（仅PC端） */
+        .container {
+            flex: 1;
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 20px;
@@ -150,7 +172,6 @@
             color: #666;
             padding: 50px 0;
         }
-        /* 新增：加载更多提示样式 */
         .load-more {
             text-align: center;
             font-size: 14px;
@@ -164,39 +185,14 @@
             color: #999;
             margin-top: 20px;
         }
-        /* 移动端适配 */
-        @media (max-width: 768px) {
-            .nav-menu {
-                display: none;
-                position: absolute;
-                top: 60px;
-                left: 0;
-                right: 0;
-                background: #fff;
-                flex-direction: column;
-                padding: 20px;
-                gap: 20px;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            }
-            .nav-menu.show {
-                display: flex;
-            }
-            .mobile-menu-btn {
-                display: block;
-            }
-            .container {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-        }
+        /* 完全移除移动端适配样式 */
     </style>
 </head>
 <body>
-    <!-- 导航栏 -->
+    <!-- 导航栏（移除移动端按钮） -->
     <header class="nav-header">
         <div class="nav-container">
             <a href="index.html" class="logo">CH-商品推荐</a>
-            <div class="mobile-menu-btn" id="mobileMenuBtn">☰</div>
             <ul class="nav-menu" id="navMenu">
                 <li><a href="index.html">首页</a></li>
                 <li><a href="new_pro.html">最强新品推荐（潜力爆款）</a></li>
@@ -210,34 +206,37 @@
     <!-- 核心内容 -->
     <h1 class="header">CH-同期热销品（同期3月）</h1>
     <div class="loading" id="initialLoading">加载中...</div>
-    <div class="container" id="product-container"></div>
-    <!-- 新增：加载更多提示 -->
+    <!-- 新增：侧边栏+商品容器布局（仅4个筛选按钮，无全部） -->
+    <div class="main-content">
+        <div class="sidebar">
+            <button class="sidebar-btn" data-filter="FBA">FBA</button>
+            <button class="sidebar-btn" data-filter="FBM">FBM</button>
+            <button class="sidebar-btn" data-filter="自营">自营</button>
+            <button class="sidebar-btn" data-filter="缺货">缺货</button>
+        </div>
+        <div class="container" id="product-container"></div>
+    </div>
     <div class="load-more" id="loadMoreTip">加载中...</div>
     <div class="refresh-tip" id="refresh-tip">数据自动刷新，当前时间：<span id="current-time"></span></div>
 
     <script>
-        // 移动端菜单逻辑
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const navMenu = document.getElementById('navMenu');
-        mobileMenuBtn.addEventListener('click', () => {
-            navMenu.classList.toggle('show');
-            mobileMenuBtn.textContent = navMenu.classList.contains('show') ? '←' : '☰';
-        });
+        // 移除移动端菜单逻辑（无需保留）
 
         // 核心配置
         const JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/march_bestsellers.json";
         const REFRESH_INTERVAL = 5 * 60 * 1000;
-        // ========== 修改1：缩小分页数量，减少单页图片压力 ==========
-        const PAGE_SIZE = 10; // 从20→10，单页图片数量减半
+        const PAGE_SIZE = 10; // 每页加载10条
         let currentPage = 1; // 当前页码
         let totalData = []; // 内存缓存全量数据
+        let filteredData = []; // 筛选后的数据
+        let currentFilter = ""; // 当前筛选条件（空=全部，无默认选中）
         let isLoading = false; // 加载锁：防止重复加载
         let hasMore = true; // 是否还有更多数据
 
-        // ========== 新增2：图片并发加载控制（核心优化） ==========
-        const MAX_IMAGE_CONCURRENT = 3; // 同时只加载3张图，避免浏览器并发限制
-        let imageLoadQueue = []; // 待加载的图片队列
-        let currentLoadingCount = 0; // 当前正在加载的图片数
+        // 图片并发加载控制
+        const MAX_IMAGE_CONCURRENT = 3;
+        let imageLoadQueue = [];
+        let currentLoadingCount = 0;
 
         // 格式化时间工具函数
         function formatTime() {
@@ -252,29 +251,24 @@
             });
         }
 
-        // ========== 优化3：图片压缩函数（加入WebP格式，体积再减30%） ==========
+        // 图片压缩函数
         function optimizeAmazonImageUrl(originalUrl) {
-            // 非亚马逊图片链接直接返回（兼容其他图片）
             if (!originalUrl || !originalUrl.includes("amazon.com/images/")) {
                 return originalUrl;
             }
-            // 替换为SL800+WebP格式（体积比SL1500小70%左右）
             return originalUrl.replace("_AC_SL1500_", "_AC_SL800_.webp");
             // 若WebP不生效，注释上面一行，启用下面一行：
             // return originalUrl.replace("_AC_SL1500_", "_AC_SL800_");
         }
 
-        // ========== 新增4：处理图片加载队列 ==========
+        // 处理图片加载队列
         function processImageQueue() {
-            // 队列空或已达并发上限，停止
             if (imageLoadQueue.length === 0 || currentLoadingCount >= MAX_IMAGE_CONCURRENT) {
                 return;
             }
-            // 取出队列第一个图片
             const imgItem = imageLoadQueue.shift();
             currentLoadingCount++;
 
-            // 加载图片（失败自动重试）
             const newImg = new Image();
             newImg.src = imgItem.src + '?t=' + new Date().getTime();
             newImg.onload = () => {
@@ -282,31 +276,28 @@
                 imgItem.element.classList.add('loaded');
                 imgItem.element.alt = imgItem.alt;
                 currentLoadingCount--;
-                processImageQueue(); // 加载完成后继续处理下一张
+                processImageQueue();
             };
             newImg.onerror = () => {
                 imgItem.element.classList.add('error');
                 imgItem.element.alt = '点击重新加载';
-                // 点击重试（只触发一次）
                 imgItem.element.addEventListener('click', () => {
                     setTimeout(() => {
-                        imageLoadQueue.unshift(imgItem); // 失败图片放回队列开头
+                        imageLoadQueue.unshift(imgItem);
                         processImageQueue();
-                    }, 2000); // 延迟2秒重试，避免频繁请求
+                    }, 2000);
                 }, { once: true });
                 currentLoadingCount--;
                 processImageQueue();
             };
         }
 
-        // ========== 优化5：重写懒加载函数（提前加载+队列控制） ==========
+        // 懒加载初始化
         function initLazyLoad() {
-            // 清空上一页的队列，避免残留
             imageLoadQueue = [];
             currentLoadingCount = 0;
 
             if (!('IntersectionObserver' in window)) {
-                // 兼容旧浏览器：直接加入队列
                 document.querySelectorAll('.product-img').forEach(img => {
                     imageLoadQueue.push({
                         element: img,
@@ -318,40 +309,46 @@
                 return;
             }
 
-            // 提前200px加载（原100px），用户滚动时图片已加载完成
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         const img = entry.target;
-                        // 加入加载队列
                         imageLoadQueue.push({
                             element: img,
                             src: img.dataset.src,
                             alt: img.dataset.alt || '热销品图片'
                         });
-                        processImageQueue(); // 触发队列处理
-                        observer.unobserve(img); // 只监听一次，避免重复触发
+                        processImageQueue();
+                        observer.unobserve(img);
                     }
                 });
             }, {
-                rootMargin: '200px 0px', // 提前200px开始加载
+                rootMargin: '200px 0px',
                 threshold: 0.01
             });
 
-            // 只监听当前页面的图片
             document.querySelectorAll('.product-img').forEach(img => {
                 observer.observe(img);
             });
         }
 
-        // 渲染指定页的数据（核心优化：分页渲染）
+        // 筛选数据函数（空筛选条件=展示全部）
+        function filterData() {
+            if (!currentFilter) {
+                filteredData = [...totalData];
+            } else {
+                filteredData = totalData.filter(item => item.shipping_method === currentFilter);
+            }
+        }
+
+        // 渲染指定页的数据（调整字段展示规则）
         function renderPageData(pageNum) {
-            // 计算当前页数据的起始和结束索引
+            filterData(); // 先筛选数据
+
             const startIndex = (pageNum - 1) * PAGE_SIZE;
             const endIndex = pageNum * PAGE_SIZE;
-            const pageData = totalData.slice(startIndex, endIndex);
+            const pageData = filteredData.slice(startIndex, endIndex);
 
-            // 没有更多数据
             if (pageData.length === 0) {
                 hasMore = false;
                 document.getElementById('loadMoreTip').textContent = '没有更多数据了';
@@ -359,19 +356,19 @@
             }
 
             const containerEl = document.getElementById('product-container');
-            // 追加渲染当前页数据（不是覆盖）
             pageData.forEach(product => {
-                // 调用图片压缩函数
                 const originalImgSrc = product.first_image_url || "";
-                const imgSrc = optimizeAmazonImageUrl(originalImgSrc); // 压缩后的高清链接
+                const imgSrc = optimizeAmazonImageUrl(originalImgSrc);
                 
+                // 字段调整：图片下展示title → 配货方式（仅值）→ 核心搜索词中文 → 其他字段（剔除最早评论）
+                const productTitle = product.title || "未知标题";
+                const shippingMethod = product.shipping_method || ""; // 仅展示值，无描述
+                const coreKeywordCn = product["核心搜索词中文"] || "未知";
                 const searchKeyword = product.search_keyword || "未知关键词";
                 const price = product.price || "0.00";
                 const launchDate = product.launch_date || "未知上架时间";
-                const earliestReviewTime = product.earliest_review_time || "未知评论时间";
                 const primaryCategory = product.primary_category || "未知主分类";
                 const secondaryCategory = product.secondary_category || "未知子分类";
-                const shippingMethod = product.shipping_method || "未知配送方式";
                 const productUrl = product.url || "#";
 
                 const card = document.createElement("div");
@@ -380,34 +377,30 @@
                     <img 
                         class="product-img" 
                         data-src="${imgSrc}"
-                        // ========== 优化6：更轻量的占位符 ==========
                         src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
-                        alt="${searchKeyword}"
-                        data-alt="${searchKeyword}"
-                        loading="lazy" // 浏览器原生懒加载，双重保障
+                        alt="${productTitle}"
+                        data-alt="${productTitle}"
+                        loading="lazy"
                     >
-                    <div class="product-name">${searchKeyword}</div>
-                    <div class="product-meta">
-                        <div><span class="label">价格：</span>${price}</div>
-                        <div><span class="label">上架时间：</span>${launchDate}</div>
-                        <div><span class="label">最早评论：</span>${earliestReviewTime}</div>
-                        <div><span class="label">主分类：</span>${primaryCategory}</div>
-                        <div><span class="label">子分类：</span>${secondaryCategory}</div>
-                        <div><span class="label">配送方式：</span>${shippingMethod}</div>
-                    </div>
+                    <div class="product-name">${productTitle}</div>
+                    <div class="product-meta">${shippingMethod}</div> <!-- 仅展示配货方式值 -->
+                    <div class="product-meta">核心搜索词中文：${coreKeywordCn}</div>
+                    <div class="product-meta">搜索关键词：${searchKeyword}</div> <!-- 原search_keyword放到下方 -->
+                    <div class="product-meta">价格：${price}</div>
+                    <div class="product-meta">上架时间：${launchDate}</div>
+                    <div class="product-meta">主分类：${primaryCategory}</div>
+                    <div class="product-meta">子分类：${secondaryCategory}</div>
                     <a class="product-link" href="${productUrl}" target="_blank" rel="noopener noreferrer">查看商品详情</a>
                 `;
                 containerEl.appendChild(card);
             });
 
-            // 初始化当前页的图片懒加载（带队列控制）
             initLazyLoad();
-            // 更新加载状态
             isLoading = false;
             document.getElementById('loadMoreTip').textContent = '上拉加载更多';
         }
 
-        // 加载全量数据到内存（仅1次请求）
+        // 加载全量数据到内存
         async function loadAllData() {
             try {
                 const response = await fetch(JSON_URL, { cache: "no-cache" });
@@ -415,10 +408,9 @@
                 
                 const jsonData = await response.json();
                 totalData = jsonData["march_bestsellers"] || [];
+                filteredData = [...totalData]; // 初始化筛选数据
                 
-                // 隐藏初始加载提示
                 document.getElementById('initialLoading').style.display = 'none';
-                // 渲染第一页数据
                 renderPageData(currentPage);
             } catch (error) {
                 document.getElementById('initialLoading').textContent = "数据加载失败，请刷新页面重试";
@@ -431,7 +423,6 @@
 
         // 加载下一页数据
         async function loadNextPage() {
-            // 防止重复加载
             if (isLoading || !hasMore) return;
             
             isLoading = true;
@@ -440,10 +431,9 @@
             renderPageData(currentPage);
         }
 
-        // 监听滚动事件：滚动到底部自动加载下一页
+        // 监听滚动事件
         function listenScroll() {
             window.addEventListener('scroll', () => {
-                // 计算页面滚动位置：是否到了底部（距离底部100px时触发）
                 const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
                 const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
                 const clientHeight = document.documentElement.clientHeight || window.innerHeight;
@@ -454,39 +444,53 @@
             });
         }
 
-        // 页面初始化
+        // 筛选按钮点击事件（点击已选中的按钮取消筛选，展示全部）
+        function initFilterButtons() {
+            const filterBtns = document.querySelectorAll('.sidebar-btn');
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetFilter = btn.dataset.filter;
+                    
+                    // 逻辑：点击已选中的按钮 → 取消筛选（清空currentFilter）；点击未选中的 → 切换筛选
+                    if (currentFilter === targetFilter) {
+                        btn.classList.remove('active');
+                        currentFilter = ""; // 清空筛选条件=展示全部
+                    } else {
+                        filterBtns.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        currentFilter = targetFilter;
+                    }
+                    
+                    // 重置分页，重新渲染
+                    currentPage = 1;
+                    hasMore = true;
+                    document.getElementById('product-container').innerHTML = '';
+                    renderPageData(currentPage);
+                });
+            });
+        }
+
+        // 页面初始化（移除移动端相关逻辑）
         window.onload = async function() {
-            // 更新当前时间
             document.getElementById('current-time').textContent = formatTime();
             
-            // 1. 加载全量数据到内存
             await loadAllData();
-            // 2. 监听滚动事件，实现无限加载
             listenScroll();
+            initFilterButtons(); // 初始化筛选按钮
 
-            // 自动刷新逻辑（可选：刷新时重新加载全量数据）
+            // 自动刷新逻辑
             setInterval(async () => {
                 console.log("自动刷新全量数据...");
-                // 重置分页状态
                 currentPage = 1;
                 hasMore = true;
                 totalData = [];
-                // 清空容器
                 document.getElementById('product-container').innerHTML = '';
-                // 重新加载全量数据
                 await loadAllData();
-                // 更新时间
                 document.getElementById('current-time').textContent = formatTime();
             }, REFRESH_INTERVAL);
         };
 
-        // 窗口大小变化重置菜单
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 768 && navMenu.classList.contains('show')) {
-                navMenu.classList.remove('show');
-                mobileMenuBtn.textContent = '☰';
-            }
-        });
+        // 移除窗口大小变化的移动端适配逻辑
     </script>
 </body>
 </html>
