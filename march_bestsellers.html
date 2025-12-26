@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CH-同期3月热销品</title> <!-- 修改：标题简化为同期3月 -->
+    <title>CH-同期3月热销品</title>
     <style>
         /* 导航栏样式（和主页一致） */
         * {
@@ -57,32 +57,6 @@
             font-size: 20px;
             cursor: pointer;
             color: #333;
-        }
-        /* 月份标签栏样式 */
-        .month-filter {
-            max-width: 1200px;
-            margin: 0 auto 20px;
-            padding: 0 20px;
-            text-align: center;
-        }
-        .month-tag {
-            display: inline-block;
-            padding: 6px 16px;
-            background: #1677ff;
-            color: #fff;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .month-select {
-            padding: 6px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            color: #333;
-            margin-left: 10px;
-            display: none;
         }
         /* 页面核心样式 */
         body {
@@ -166,7 +140,7 @@
         }
         .header {
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 30px; /* 恢复原间距（删掉中间标签后） */
             color: #333;
             margin-top: 20px;
         }
@@ -218,27 +192,15 @@
             <ul class="nav-menu" id="navMenu">
                 <li><a href="index.html">首页</a></li>
                 <li><a href="new_pro.html">最强新品推荐（潜力爆款）</a></li>
-                <li><a href="march_bestsellers.html" class="active">同期3月热销品</a></li> <!-- 修改：简化为同期3月 -->
+                <li><a href="march_bestsellers.html" class="active">同期3月热销品</a></li>
                 <li><a href="#">其他分类1（可扩展）</a></li>
                 <li><a href="#">其他分类2（可扩展）</a></li>
             </ul>
         </div>
     </header>
 
-    <!-- 月份标签栏 -->
-    <div class="month-filter">
-        <!-- 修改：2025年3月 → 同期3月 -->
-        <span class="month-tag">同期3月</span>
-        <!-- 后续扩展月份下拉（隐藏）
-        <select class="month-select" id="monthSelector">
-            <option value="march" selected>同期3月</option>
-            <option value="april">同期4月</option>
-            <option value="may">同期5月</option>
-        </select> -->
-    </div>
-
-    <!-- 核心内容 -->
-    <h1 class="header">CH-同期热销品（同期3月）</h1> <!-- 修改：简化标注 -->
+    <!-- 核心内容（删除中间的月份标签栏） -->
+    <h1 class="header">CH-同期热销品（同期3月）</h1>
     <div class="loading" id="loading">加载中...</div>
     <div class="container" id="product-container"></div>
     <div class="refresh-tip" id="refresh-tip">数据自动刷新，当前时间：<span id="current-time"></span></div>
@@ -252,9 +214,9 @@
             mobileMenuBtn.textContent = navMenu.classList.contains('show') ? '←' : '☰';
         });
 
-        // 核心配置（替换为你的JSON实际地址）
+        // 核心配置（确认JSON路径正确）
         const JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/march_bestsellers.json";
-        const REFRESH_INTERVAL = 5 * 60 * 1000; // 5分钟自动刷新
+        const REFRESH_INTERVAL = 5 * 60 * 1000;
 
         // 格式化时间工具函数
         function formatTime() {
@@ -324,7 +286,7 @@
             });
         }
 
-        // 渲染商品列表
+        // 渲染商品列表（修复JSON结构匹配问题）
         async function renderProducts() {
             const loadingEl = document.getElementById("loading");
             const containerEl = document.getElementById("product-container");
@@ -337,12 +299,12 @@
                 if (!response.ok) throw new Error(`HTTP错误：${response.status}`);
                 
                 const jsonData = await response.json();
-                const products = jsonData["March Bestsellers"] || jsonData;
+                // 修复：匹配你的JSON实际key（"march_bestsellers"，小写m）
+                const products = jsonData["march_bestsellers"] || [];
 
                 containerEl.innerHTML = "";
 
-                // 无数据提示（修改：简化为同期3月）
-                if (!products || products.length === 0) {
+                if (products.length === 0) {
                     containerEl.innerHTML = '<div style="text-align:center; width:100%; color:#666; padding: 50px 0;">暂无同期3月热销品数据</div>';
                     return;
                 }
@@ -386,9 +348,8 @@
                 initLazyLoad();
 
             } catch (error) {
-                // 报错提示（修改：简化为同期3月）
                 loadingEl.textContent = "同期3月热销品数据加载失败，请刷新页面重试";
-                console.error("同期3月热销品数据加载失败：", error);
+                console.error("数据加载失败原因：", error);
             } finally {
                 loadingEl.style.display = "none";
             }
@@ -398,7 +359,7 @@
         window.onload = async function() {
             await renderProducts();
             setInterval(async () => {
-                console.log("自动刷新同期3月热销品数据..."); // 修改：简化日志
+                console.log("自动刷新同期3月热销品数据...");
                 await renderProducts();
             }, REFRESH_INTERVAL);
         };
@@ -410,30 +371,6 @@
                 mobileMenuBtn.textContent = '☰';
             }
         });
-
-        // 后续扩展月份切换逻辑（预留）
-        /*
-        const monthSelector = document.getElementById('monthSelector');
-        if (monthSelector) {
-            monthSelector.addEventListener('change', async (e) => {
-                const selectedMonth = e.target.value;
-                switch(selectedMonth) {
-                    case 'march':
-                        JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/March%20Bestsellers.json";
-                        break;
-                    case 'april':
-                        JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/April%20Bestsellers.json";
-                        break;
-                    case 'may':
-                        JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/May%20Bestsellers.json";
-                        break;
-                }
-                await renderProducts();
-                document.querySelector('.month-tag').textContent = e.target.options[e.target.selectedIndex].text;
-                document.title = `CH-${e.target.options[e.target.selectedIndex].text}热销品`;
-            });
-        }
-        */
     </script>
 </body>
 </html>
