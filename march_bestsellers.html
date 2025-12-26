@@ -86,11 +86,12 @@
             color: white;
         }
         /* 商品容器样式（仅PC端） */
-        .container {
-            flex: 1;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
+       .container {
+           flex: 1;
+           display: grid;
+           /* 修改：将minmax的最小值从280px改为260px，适配4列布局 */
+           grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+           gap: 20px; /* 保持间距，不影响布局 */
         }
         .product-card {
             background: white;
@@ -252,13 +253,15 @@
         }
 
         // 图片压缩函数
-        function optimizeAmazonImageUrl(originalUrl) {
-            if (!originalUrl || !originalUrl.includes("amazon.com/images/")) {
-                return originalUrl;
-            }
-            return originalUrl.replace("_AC_SL1500_", "_AC_SL800_.webp");
-            // 若WebP不生效，注释上面一行，启用下面一行：
-            // return originalUrl.replace("_AC_SL1500_", "_AC_SL800_");
+       function optimizeAmazonImageUrl(originalUrl) {
+           if (!originalUrl || !originalUrl.includes("amazon.com/images/")) {
+            return originalUrl;
+           }
+          // 步骤1：先替换尺寸（SL1500→SL600），保留webp标识
+          let newUrl = originalUrl.replace("_AC_SL1500_", "_AC_SL600_.webp");
+          // 步骤2：移除末尾多余的.jpg/.png后缀（避免格式冲突）
+          newUrl = newUrl.replace(/\.(jpg|png)$/i, "");
+          return newUrl;
         }
 
         // 处理图片加载队列
