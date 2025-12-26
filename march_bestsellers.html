@@ -271,9 +271,9 @@
             if (!originalUrl || !originalUrl.includes("amazon.com/images/")) {
                 return originalUrl;
             }
-            return originalUrl.replace("_AC_SL1500_", "_AC_SL300_");
+            return originalUrl.replace(/_AC_SL\d+_/g, "_AC_SL300_");
             // 若WebP不生效，注释上面一行，启用下面一行：
-            // return originalUrl.replace("_AC_SL1500_", "_AC_SL300_");
+            // return originalUrl.replace(/_AC_SL\d+_/g, "_AC_SL300_");
         }
 
         // 处理图片加载队列
