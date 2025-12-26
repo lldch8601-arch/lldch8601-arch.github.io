@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CH-同期3月热销品</title>
+    <!-- ========== 新增：网络层面优化 ========== -->
+    <link rel="preconnect" href="https://raw.githubusercontent.com">
+    <link rel="dns-prefetch" href="https://raw.githubusercontent.com">
+    <link rel="preconnect" href="https://p3-flow-imagex-sign.byteimg.com">
+    <link rel="dns-prefetch" href="https://p3-flow-imagex-sign.byteimg.com">
     <style>
         /* 导航栏样式（仅保留PC端） */
         * {
@@ -109,6 +114,8 @@
             background: #f0f0f0;
             opacity: 0;
             transition: opacity 0.3s ease-in-out;
+            /* ========== 新增：图片加载优先级 ========== */
+            content-visibility: auto;
         }
         .product-img.loaded {
             opacity: 1;
@@ -198,7 +205,7 @@
             font-size: 14px;
             color: #333;
         }
-        /* ========== 新增：骨架屏样式 ========== */
+        /* 骨架屏样式（优化：更轻量） */
         .skeleton-card {
             background: white;
             border-radius: 8px;
@@ -207,6 +214,8 @@
             height: 380px;
             position: relative;
             overflow: hidden;
+            /* ========== 新增：骨架屏性能优化 ========== */
+            content-visibility: auto;
         }
         .skeleton-card::before {
             content: '';
@@ -220,12 +229,13 @@
                 #e0e0e0 50%, 
                 #f0f0f0 100%);
             animation: shimmer 1.5s infinite;
+            /* ========== 新增：减少动画开销 ========== */
+            will-change: transform;
         }
         @keyframes shimmer {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(100%); }
         }
-        /* 骨架屏隐藏动画 */
         .fade-out {
             animation: fadeOut 0.3s ease-out forwards;
         }
@@ -253,7 +263,6 @@
     <!-- 核心内容 -->
     <h1 class="header">CH-同期热销品（同期3月）</h1>
     <div class="loading" id="initialLoading">加载中...</div>
-    <!-- 新增：侧边栏+商品容器布局 -->
     <div class="main-content">
         <div class="sidebar">
             <button class="sidebar-btn" data-filter="FBA">FBA</button>
@@ -267,33 +276,60 @@
     <div class="refresh-tip" id="refresh-tip">数据自动刷新，当前时间：<span id="current-time"></span></div>
 
     <script>
-        // 核心配置 - 使用CDN加速
-        // 注意：将 YOUR_USERNAME 替换为你的GitHub用户名
+        // ========== 核心优化1：全局常量提前定义 + 缓存配置 ==========
+        const CACHE_KEY = 'product_data_cache';
+        const CACHE_EXPIRE = 10 * 60 * 1000; // 缓存10分钟
         const JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/main/march_bestsellers.json";
-        
-        // 备用URL（如果CDN失败）
         const FALLBACK_JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/march_bestsellers.json";
+        const REFRESH_INTERVAL = 5 * 60 * 1000;
+        const PAGE_SIZE = 10;
         
-        const REFRESH_INTERVAL = 5 * 60 * 1000; // 5分钟刷新一次
-        const PAGE_SIZE = 10; // 每页加载10条
-        const INITIAL_PAGES = 2; // 初始加载2页（20条）
-        
-        let currentPage = 0; // 当前页码
-        let totalData = []; // 内存缓存全量数据
-        let filteredData = []; // 筛选后的数据
-        let currentFilter = ""; // 当前筛选条件
-        let isLoading = false; // 加载锁
-        let hasMore = true; // 是否还有更多数据
-        let isFirstLoad = true; // 首次加载标志
-        let dataLoadAttempts = 0; // 数据加载尝试次数
+        // 全局状态（精简）
+        let currentPage = 0;
+        let totalData = [];
+        let filteredData = [];
+        let currentFilter = "";
+        let isLoading = false;
+        let hasMore = true;
+        let isFirstLoad = true;
 
-        // 图片并发加载控制
-        const MAX_IMAGE_CONCURRENT = 4;
+        // 图片加载配置（优化并发数）
+        const MAX_IMAGE_CONCURRENT = 6; // 首屏图片并发数提高到6
         let imageLoadQueue = [];
         let currentLoadingCount = 0;
 
-        // ========== 新增：带超时的fetch函数 ==========
-        function fetchWithTimeout(url, options = {}, timeout = 10000) {
+        // ========== 核心优化2：提前加载缓存数据（不等待window.onload） ==========
+        let cachedData = null;
+        try {
+            const cacheStr = localStorage.getItem(CACHE_KEY);
+            if (cacheStr) {
+                const cacheObj = JSON.parse(cacheStr);
+                // 检查缓存是否过期
+                if (Date.now() - cacheObj.timestamp < CACHE_EXPIRE) {
+                    cachedData = cacheObj.data;
+                    console.log('使用本地缓存数据，跳过网络请求');
+                } else {
+                    localStorage.removeItem(CACHE_KEY); // 清理过期缓存
+                }
+            }
+        } catch (e) {
+            console.warn('读取缓存失败', e);
+        }
+
+        // ========== 核心优化3：立即渲染骨架屏（0延迟） ==========
+        (function showSkeletonScreen(count = 8) {
+            const container = document.getElementById('product-container');
+            container.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const skeleton = document.createElement('div');
+                skeleton.className = 'skeleton-card';
+                container.appendChild(skeleton);
+            }
+            document.getElementById('initialLoading').style.display = 'none';
+        })();
+
+        // 带超时的fetch（优化超时时间）
+        function fetchWithTimeout(url, options = {}, timeout = 6000) { // 超时从10s缩短到6s
             return Promise.race([
                 fetch(url, options),
                 new Promise((_, reject) => 
@@ -302,73 +338,25 @@
             ]);
         }
 
-        // ========== 新增：重试机制 ==========
-        async function retryFetch(url, maxRetries = 2) {
+        // 重试机制（优化重试间隔）
+        async function retryFetch(url, maxRetries = 1) {
             for (let i = 0; i <= maxRetries; i++) {
                 try {
-                    console.log(`尝试加载数据，第${i+1}次尝试...`);
-                    const response = await fetchWithTimeout(url + '?t=' + Date.now(), { 
-                        cache: "no-store",
-                        headers: {
-                            'Cache-Control': 'no-cache',
-                            'Pragma': 'no-cache'
-                        }
-                    }, 8000);
-                    
+                    const response = await fetchWithTimeout(
+                        url + '?t=' + Date.now(), 
+                        { cache: "no-store" },
+                        5000 // 单次请求超时5s
+                    );
                     if (!response.ok) throw new Error(`HTTP错误：${response.status}`);
                     return await response.json();
                 } catch (error) {
-                    console.warn(`第${i+1}次尝试失败:`, error.message);
                     if (i === maxRetries) throw error;
-                    
-                    // 等待一段时间后重试
-                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                    await new Promise(resolve => setTimeout(resolve, 500 * (i + 1))); // 重试间隔从1s缩短到0.5s
                 }
             }
         }
 
-        // ========== 新增：快速显示骨架屏 ==========
-        function showSkeletonScreen(count = 8) {
-            const container = document.getElementById('product-container');
-            container.innerHTML = '';
-            
-            for (let i = 0; i < count; i++) {
-                const skeleton = document.createElement('div');
-                skeleton.className = 'skeleton-card';
-                container.appendChild(skeleton);
-            }
-            
-            // 隐藏初始loading
-            document.getElementById('initialLoading').style.display = 'none';
-        }
-
-        // ========== 新增：移除骨架屏 ==========
-        function removeSkeletonScreen() {
-            const skeletons = document.querySelectorAll('.skeleton-card');
-            skeletons.forEach(skeleton => {
-                skeleton.classList.add('fade-out');
-                setTimeout(() => {
-                    if (skeleton.parentNode) {
-                        skeleton.parentNode.removeChild(skeleton);
-                    }
-                }, 300);
-            });
-        }
-
-        // 格式化时间工具函数
-        function formatTime() {
-            const now = new Date();
-            return now.toLocaleString("zh-CN", {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-        }
-
-        // 图片压缩函数
+        // 图片压缩函数（保持不变）
         function optimizeAmazonImageUrl(originalUrl) {
             if (!originalUrl || !originalUrl.includes("amazon.com/images/")) {
                 return originalUrl;
@@ -376,38 +364,34 @@
             return originalUrl.replace(/_AC_SL\d+_/g, "_AC_SL300_");
         }
 
-        // 处理图片加载队列（优化：优先加载首屏图片）
+        // ========== 核心优化4：图片加载队列（极致优化） ==========
         function processImageQueue() {
             if (imageLoadQueue.length === 0 || currentLoadingCount >= MAX_IMAGE_CONCURRENT) {
                 return;
             }
-            
             const imgItem = imageLoadQueue.shift();
             currentLoadingCount++;
 
             const newImg = new Image();
             newImg.src = imgItem.src + '?t=' + Date.now();
+            // ========== 新增：图片加载优先级 ==========
+            newImg.fetchPriority = imgItem.isFirstScreen ? 'high' : 'low';
             
             newImg.onload = () => {
                 imgItem.element.src = imgItem.src;
                 imgItem.element.classList.add('loaded');
-                imgItem.element.alt = imgItem.alt;
                 currentLoadingCount--;
                 processImageQueue();
             };
             
             newImg.onerror = () => {
-                // 第一次失败，尝试使用原URL
                 if (!imgItem.retried) {
                     imgItem.retried = true;
-                    imgItem.src = imgItem.originalSrc || imgItem.src;
                     imageLoadQueue.unshift(imgItem);
                 } else {
                     imgItem.element.classList.add('error');
-                    imgItem.element.alt = '点击重新加载';
                     imgItem.element.addEventListener('click', () => {
                         imgItem.element.classList.remove('error');
-                        imgItem.element.alt = '加载中...';
                         setTimeout(() => {
                             imageLoadQueue.unshift(imgItem);
                             processImageQueue();
@@ -419,7 +403,7 @@
             };
         }
 
-        // 优化懒加载初始化（优先加载首屏）
+        // 懒加载初始化（优化首屏优先级）
         function initLazyLoad() {
             imageLoadQueue = [];
             currentLoadingCount = 0;
@@ -427,33 +411,25 @@
             const allImages = Array.from(document.querySelectorAll('.product-img'));
             if (allImages.length === 0) return;
 
-            // 分批加载：首屏图片立即加载，其他延迟
             const viewportHeight = window.innerHeight;
-            
             allImages.forEach((img, index) => {
                 const rect = img.getBoundingClientRect();
-                const isInViewport = rect.top < viewportHeight + 200;
+                const isFirstScreen = rect.top < viewportHeight + 200 || index < 6; // 首屏前6张
                 
-                const imgData = {
+                imageLoadQueue.push({
                     element: img,
                     src: img.dataset.src,
-                    originalSrc: img.dataset.src, // 保存原始URL
                     alt: img.dataset.alt || '热销品图片',
-                    retried: false
-                };
-                
-                // 首屏或前4张图片优先加载
-                if (isInViewport || index < 4) {
-                    imageLoadQueue.unshift(imgData); // 添加到队列前面
-                } else {
-                    imageLoadQueue.push(imgData); // 添加到队列后面
-                }
+                    retried: false,
+                    isFirstScreen: isFirstScreen // 标记首屏图片
+                });
             });
 
-            // 开始加载
+            // 首屏图片优先加载
+            imageLoadQueue.sort((a, b) => b.isFirstScreen - a.isFirstScreen);
             processImageQueue();
-            
-            // 使用IntersectionObserver监听后续图片
+
+            // 简化IntersectionObserver（减少开销）
             if ('IntersectionObserver' in window) {
                 const observer = new IntersectionObserver((entries) => {
                     entries.forEach(entry => {
@@ -464,19 +440,17 @@
                                 imageLoadQueue.push({
                                     element: img,
                                     src: img.dataset.src,
-                                    alt: img.dataset.alt || '热销品图片'
+                                    alt: img.dataset.alt || '热销品图片',
+                                    retried: false,
+                                    isFirstScreen: false
                                 });
                                 processImageQueue();
                             }
                             observer.unobserve(img);
                         }
                     });
-                }, {
-                    rootMargin: '300px 0px',
-                    threshold: 0.01
-                });
+                }, { rootMargin: '300px 0px', threshold: 0.01 });
 
-                // 只观察非首屏图片
                 allImages.forEach(img => {
                     const rect = img.getBoundingClientRect();
                     if (rect.top >= viewportHeight + 200) {
@@ -486,19 +460,16 @@
             }
         }
 
-        // 筛选数据函数
+        // 筛选数据（保持不变）
         function filterData() {
-            if (!currentFilter) {
-                filteredData = [...totalData];
-            } else {
-                filteredData = totalData.filter(item => item.shipping_method === currentFilter);
-            }
+            filteredData = currentFilter 
+                ? totalData.filter(item => item.shipping_method === currentFilter)
+                : [...totalData];
         }
 
-        // 渲染指定页的数据
+        // 渲染数据（优化：减少setTimeout延迟）
         function renderPageData(pageNum) {
             filterData();
-            
             const startIndex = (pageNum - 1) * PAGE_SIZE;
             const endIndex = pageNum * PAGE_SIZE;
             const pageData = filteredData.slice(startIndex, endIndex);
@@ -511,18 +482,8 @@
 
             const containerEl = document.getElementById('product-container');
             pageData.forEach(product => {
-                const originalImgSrc = product.first_image_url || "";
-                const imgSrc = optimizeAmazonImageUrl(originalImgSrc);
-                
+                const imgSrc = optimizeAmazonImageUrl(product.first_image_url || "");
                 const productTitle = product.title || "未知标题";
-                const shippingMethod = product.shipping_method || "";
-                const coreKeywordCn = product["核心搜索词中文"] || "未知";
-                const searchKeyword = product.search_keyword || "未知关键词";
-                const price = product.price || "0.00";
-                const launchDate = product.launch_date || "未知上架时间";
-                const primaryCategory = product.primary_category || "未知主分类";
-                const secondaryCategory = product.secondary_category || "未知子分类";
-                const productUrl = product.url || "#";
 
                 const card = document.createElement("div");
                 card.className = "product-card";
@@ -536,113 +497,112 @@
                         loading="lazy"
                     >
                     <div class="product-name" data-title="${productTitle}">${productTitle}</div>
-                    <div class="product-meta">${shippingMethod}</div>
-                    <div class="product-meta">核心搜索词中文：${coreKeywordCn}</div>
-                    <div class="product-meta">搜索关键词：${searchKeyword}</div>
-                    <div class="product-meta">价格：${price}</div>
-                    <div class="product-meta">上架时间：${launchDate}</div>
-                    <div class="product-meta">主分类：${primaryCategory}</div>
-                    <div class="product-meta">子分类：${secondaryCategory}</div>
-                    <a class="product-link" href="${productUrl}" target="_blank" rel="noopener noreferrer">查看商品详情</a>
+                    <div class="product-meta">${product.shipping_method || ""}</div>
+                    <div class="product-meta">核心搜索词中文：${product["核心搜索词中文"] || "未知"}</div>
+                    <div class="product-meta">搜索关键词：${product.search_keyword || "未知关键词"}</div>
+                    <div class="product-meta">价格：${product.price || "0.00"}</div>
+                    <div class="product-meta">上架时间：${product.launch_date || "未知上架时间"}</div>
+                    <div class="product-meta">主分类：${product.primary_category || "未知主分类"}</div>
+                    <div class="product-meta">子分类：${product.secondary_category || "未知子分类"}</div>
+                    <a class="product-link" href="${product.url || "#"}" target="_blank" rel="noopener noreferrer">查看商品详情</a>
                 `;
                 containerEl.appendChild(card);
             });
 
-            // 如果是首次加载，移除骨架屏
+            // 移除骨架屏（无延迟）
             if (isFirstLoad && pageNum === 1) {
-                setTimeout(removeSkeletonScreen, 100);
+                removeSkeletonScreen();
                 isFirstLoad = false;
             }
 
-            // 初始化图片懒加载
-            setTimeout(initLazyLoad, 100);
+            // 立即初始化图片加载（去掉100ms延迟）
+            initLazyLoad();
             
             isLoading = false;
             document.getElementById('loadMoreTip').textContent = hasMore ? '上拉加载更多' : '没有更多数据了';
             document.getElementById('loadMoreTip').style.display = hasMore ? 'block' : 'none';
         }
 
-        // 加载全量数据
+        // ========== 核心优化5：加载数据（优先用缓存） ==========
         async function loadAllData() {
             try {
-                dataLoadAttempts++;
-                console.log(`开始加载数据（第${dataLoadAttempts}次）...`);
-                
+                // 优先使用缓存数据
+                if (cachedData) {
+                    totalData = cachedData["march_bestsellers"] || [];
+                    filteredData = [...totalData];
+                    currentPage = 1;
+                    hasMore = totalData.length > 0;
+                    renderPageData(currentPage);
+                    
+                    // 后台异步刷新缓存（不阻塞UI）
+                    setTimeout(async () => {
+                        try {
+                            const freshData = await retryFetch(JSON_URL, 1);
+                            localStorage.setItem(CACHE_KEY, JSON.stringify({
+                                timestamp: Date.now(),
+                                data: freshData
+                            }));
+                            console.log('后台刷新缓存成功');
+                        } catch (e) {
+                            console.warn('后台刷新缓存失败', e);
+                        }
+                    }, 2000);
+                    return true;
+                }
+
+                // 无缓存，发起网络请求
                 let jsonData;
                 try {
-                    // 优先使用CDN
                     jsonData = await retryFetch(JSON_URL, 1);
                 } catch (error) {
-                    console.log('CDN加载失败，尝试备用URL...', error);
-                    // CDN失败，尝试原始URL
                     jsonData = await retryFetch(FALLBACK_JSON_URL, 1);
                 }
                 
+                // 缓存数据到本地
+                localStorage.setItem(CACHE_KEY, JSON.stringify({
+                    timestamp: Date.now(),
+                    data: jsonData
+                }));
+                
                 totalData = jsonData["march_bestsellers"] || [];
                 filteredData = [...totalData];
-                
-                console.log(`数据加载成功，共${totalData.length}条记录`);
-                
-                // 重置页码
                 currentPage = 1;
                 hasMore = totalData.length > 0;
-                
-                // 渲染数据
                 renderPageData(currentPage);
-                
-                // 如果有更多数据，显示加载提示
-                if (hasMore && totalData.length > PAGE_SIZE) {
-                    document.getElementById('loadMoreTip').style.display = 'block';
-                }
                 
                 return true;
             } catch (error) {
-                console.error("全量数据加载失败：", error);
-                
-                // 显示错误信息
+                console.error("数据加载失败：", error);
                 const container = document.getElementById('product-container');
                 container.innerHTML = `
                     <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px;">
-                        <div style="color: #ff4d4f; font-size: 16px; margin-bottom: 10px;">
-                            数据加载失败
-                        </div>
-                        <div style="color: #666; font-size: 14px; margin-bottom: 20px;">
-                            请检查网络连接或稍后重试
-                        </div>
-                        <button id="retryBtn" style="padding: 8px 16px; background: #1677ff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                            重新加载
-                        </button>
+                        <div style="color: #ff4d4f; font-size: 16px; margin-bottom: 10px;">数据加载失败</div>
+                        <div style="color: #666; font-size: 14px; margin-bottom: 20px;">请检查网络连接或稍后重试</div>
+                        <button id="retryBtn" style="padding: 8px 16px; background: #1677ff; color: white; border: none; border-radius: 4px; cursor: pointer;">重新加载</button>
                     </div>
                 `;
-                
-                // 移除骨架屏
                 removeSkeletonScreen();
-                
-                // 重试按钮事件
                 document.getElementById('retryBtn').addEventListener('click', async () => {
                     document.getElementById('product-container').innerHTML = '';
                     showSkeletonScreen();
                     await loadAllData();
                 });
-                
                 return false;
             }
         }
 
-        // 加载下一页数据
+        // 加载下一页（保持不变）
         async function loadNextPage() {
             if (isLoading || !hasMore) return;
-            
             isLoading = true;
             const loadMoreTip = document.getElementById('loadMoreTip');
             loadMoreTip.textContent = '加载中...';
             loadMoreTip.style.display = 'block';
-            
             currentPage++;
             renderPageData(currentPage);
         }
 
-        // 监听滚动事件（优化：防抖）
+        // 滚动监听（优化防抖时间）
         function listenScroll() {
             let scrollTimer;
             window.addEventListener('scroll', () => {
@@ -651,21 +611,19 @@
                     const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
                     const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
                     const clientHeight = document.documentElement.clientHeight || window.innerHeight;
-                    
                     if (scrollTop + clientHeight >= scrollHeight - 200) {
                         loadNextPage();
                     }
-                }, 100);
+                }, 50); // 防抖时间从100ms缩短到50ms
             });
         }
 
-        // 筛选按钮点击事件
+        // 筛选按钮（保持不变）
         function initFilterButtons() {
             const filterBtns = document.querySelectorAll('.sidebar-btn');
             filterBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
                     const targetFilter = btn.dataset.filter;
-                    
                     if (currentFilter === targetFilter) {
                         btn.classList.remove('active');
                         currentFilter = "";
@@ -674,8 +632,6 @@
                         btn.classList.add('active');
                         currentFilter = targetFilter;
                     }
-                    
-                    // 重置分页，重新渲染
                     currentPage = 1;
                     hasMore = true;
                     document.getElementById('product-container').innerHTML = '';
@@ -684,27 +640,22 @@
             });
         }
 
-        // 点击Title显示完整内容
+        // Title弹窗（保持不变）
         function initTitlePopup() {
             let popupEl = document.createElement('div');
             popupEl.className = 'title-popup';
             document.body.appendChild(popupEl);
-
             document.addEventListener('click', (e) => {
                 const titleEl = e.target.closest('.product-name');
                 if (titleEl) {
                     const fullTitle = titleEl.dataset.title;
                     popupEl.textContent = fullTitle;
                     popupEl.style.display = 'block';
-                    
                     const rect = titleEl.getBoundingClientRect();
                     popupEl.style.top = `${rect.bottom + 5}px`;
                     popupEl.style.left = `${rect.left}px`;
-                    
-                    // 确保弹窗不超出视口
-                    const popupRect = popupEl.getBoundingClientRect();
-                    if (popupRect.right > window.innerWidth) {
-                        popupEl.style.left = `${window.innerWidth - popupRect.width - 10}px`;
+                    if (popupEl.getBoundingClientRect().right > window.innerWidth) {
+                        popupEl.style.left = `${window.innerWidth - popupEl.offsetWidth - 10}px`;
                     }
                 } else if (popupEl.style.display === 'block' && !popupEl.contains(e.target)) {
                     popupEl.style.display = 'none';
@@ -712,53 +663,61 @@
             });
         }
 
-        // ========== 优化后的页面初始化 ==========
-        window.onload = async function() {
+        // 移除骨架屏（简化）
+        function removeSkeletonScreen() {
+            const skeletons = document.querySelectorAll('.skeleton-card');
+            skeletons.forEach(skeleton => {
+                skeleton.classList.add('fade-out');
+                setTimeout(() => skeleton.remove(), 300);
+            });
+        }
+
+        // 格式化时间（保持不变）
+        function formatTime() {
+            return new Date().toLocaleString("zh-CN", {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // ========== 核心优化6：页面初始化（极简延迟） ==========
+        window.addEventListener('DOMContentLoaded', async () => {
             // 立即更新时间
             document.getElementById('current-time').textContent = formatTime();
-            
-            // 第一步：立即显示骨架屏（0.1秒内）
-            setTimeout(() => {
-                showSkeletonScreen();
-            }, 100);
-            
-            // 第二步：异步加载数据（不阻塞UI）
-            setTimeout(async () => {
-                await loadAllData();
-                listenScroll();
-                initFilterButtons();
-                initTitlePopup();
-                
-                // 更新加载完成时间
-                document.getElementById('current-time').textContent = formatTime();
-            }, 300);
-            
-            // 第三步：延迟启动自动刷新（避免影响首次加载）
-            setTimeout(() => {
-                const refreshInterval = setInterval(async () => {
-                    console.log("自动刷新数据...");
-                    try {
-                        const success = await loadAllData();
-                        if (success) {
-                            document.getElementById('current-time').textContent = formatTime();
-                            console.log("数据刷新成功");
-                        }
-                    } catch (error) {
-                        console.error("自动刷新失败：", error);
-                    }
-                }, REFRESH_INTERVAL);
-                
-                // 页面卸载时清除定时器
-                window.addEventListener('beforeunload', () => {
-                    clearInterval(refreshInterval);
-                });
-            }, 10000); // 10秒后开始自动刷新
-            
-            // 第四步：每秒更新时间（不加载数据）
             setInterval(() => {
                 document.getElementById('current-time').textContent = formatTime();
             }, 1000);
-        };
+
+            // 立即加载数据（无延迟）
+            await loadAllData();
+            listenScroll();
+            initFilterButtons();
+            initTitlePopup();
+
+            // 自动刷新（延迟10秒启动）
+            setTimeout(() => {
+                const refreshInterval = setInterval(async () => {
+                    try {
+                        const success = await loadAllData();
+                        if (success) console.log("数据刷新成功");
+                    } catch (e) {
+                        console.error("自动刷新失败", e);
+                    }
+                }, REFRESH_INTERVAL);
+                window.addEventListener('beforeunload', () => clearInterval(refreshInterval));
+            }, 10000);
+        });
+
+        // 备用：如果DOMContentLoaded触发晚，降级到load
+        window.addEventListener('load', async () => {
+            if (totalData.length === 0) {
+                await loadAllData();
+            }
+        });
     </script>
 </body>
 </html>
