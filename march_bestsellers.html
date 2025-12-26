@@ -261,10 +261,12 @@
         let hasMore = true;
         let isFirstLoad = true;
 
-        // 图片加载配置（恢复原始并发数，简化逻辑）
-        const MAX_IMAGE_CONCURRENT = 3;
+        // 图片加载配置（保留原有并发控制，新增预加载数量）
+        const MAX_IMAGE_CONCURRENT = 3; // 并发加载数（保证性能不超限）
+        const PRELOAD_COUNT = 5; // 预加载后面的5张图片（可根据需求调整）
         let imageLoadQueue = [];
         let currentLoadingCount = 0;
+        let allImgElements = []; // 存储所有图片元素，用于预加载
 
         // 初始化骨架屏（静态占位，无动画）
         function showSkeletonScreen(count = 8) {
@@ -304,7 +306,31 @@
             return originalUrl.replace(/_AC_SL\d+_/g, "_AC_SL300_");
         }
 
-        // 处理图片加载队列（简化版）
+        // 预加载检查：加载完当前可见图片后，主动加载后面的图片
+        function checkPreload() {
+            // 找到第一个未加载/未入队的图片
+            const firstUnloadedIndex = allImgElements.findIndex(img => {
+                const isLoaded = img.classList.contains('loaded') || img.classList.contains('error');
+                const isInQueue = imageLoadQueue.some(item => item.element === img);
+                return !isLoaded && !isInQueue;
+            });
+
+            // 存在未处理图片时，预加载后面N张
+            if (firstUnloadedIndex !== -1) {
+                const preloadEndIndex = Math.min(firstUnloadedIndex + PRELOAD_COUNT, allImgElements.length);
+                for (let i = firstUnloadedIndex; i < preloadEndIndex; i++) {
+                    const img = allImgElements[i];
+                    imageLoadQueue.push({
+                        element: img,
+                        src: img.dataset.src,
+                        alt: img.dataset.alt || '热销品图片'
+                    });
+                }
+                processImageQueue(); // 立即处理新增的预加载队列
+            }
+        }
+
+        // 处理图片加载队列（复用原有逻辑，新增预加载触发）
         function processImageQueue() {
             if (imageLoadQueue.length === 0 || currentLoadingCount >= MAX_IMAGE_CONCURRENT) {
                 return;
@@ -321,6 +347,7 @@
                 imgItem.element.alt = imgItem.alt;
                 currentLoadingCount--;
                 processImageQueue();
+                checkPreload(); // 加载完成后触发预加载检查
             };
             
             newImg.onerror = () => {
@@ -334,16 +361,20 @@
                 }, { once: true });
                 currentLoadingCount--;
                 processImageQueue();
+                checkPreload(); // 即使失败，也触发预加载检查
             };
         }
 
-        // 懒加载初始化（简化版）
+        // 懒加载初始化（集成预加载逻辑，无冗余）
         function initLazyLoad() {
+            // 重置队列和图片列表
             imageLoadQueue = [];
             currentLoadingCount = 0;
+            allImgElements = Array.from(document.querySelectorAll('.product-img'));
 
             if (!('IntersectionObserver' in window)) {
-                document.querySelectorAll('.product-img').forEach(img => {
+                // 不支持Observer时，直接加载+预加载
+                allImgElements.forEach(img => {
                     imageLoadQueue.push({
                         element: img,
                         src: img.dataset.src,
@@ -358,20 +389,27 @@
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         const img = entry.target;
-                        imageLoadQueue.push({
-                            element: img,
-                            src: img.dataset.src,
-                            alt: img.dataset.alt || '热销品图片'
-                        });
-                        processImageQueue();
+                        // 仅当图片未加载/未入队时，加入队列
+                        if (!img.classList.contains('loaded') && !img.classList.contains('error')) {
+                            imageLoadQueue.push({
+                                element: img,
+                                src: img.dataset.src,
+                                alt: img.dataset.alt || '热销品图片'
+                            });
+                            processImageQueue();
+                        }
                         observer.unobserve(img);
                     }
                 });
             }, { rootMargin: '200px 0px', threshold: 0.01 });
 
-            document.querySelectorAll('.product-img').forEach(img => {
+            // 监听所有图片，同时初始化预加载检查
+            allImgElements.forEach(img => {
                 observer.observe(img);
             });
+
+            // 初始化500ms后触发首次预加载（保证视口内图片先加载）
+            setTimeout(checkPreload, 500);
         }
 
         // 筛选数据
@@ -429,7 +467,7 @@
                 isFirstLoad = false;
             }
 
-            initLazyLoad();
+            initLazyLoad(); // 初始化懒加载+预加载
             isLoading = false;
             document.getElementById('loadMoreTip').textContent = hasMore ? '上拉加载更多' : '没有更多数据了';
             document.getElementById('loadMoreTip').style.display = hasMore ? 'block' : 'none';
