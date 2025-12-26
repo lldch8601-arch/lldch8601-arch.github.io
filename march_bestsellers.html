@@ -140,7 +140,7 @@
         }
         .header {
             text-align: center;
-            margin-bottom: 30px; /* 恢复原间距（删掉中间标签后） */
+            margin-bottom: 30px;
             color: #333;
             margin-top: 20px;
         }
@@ -149,6 +149,14 @@
             font-size: 18px;
             color: #666;
             padding: 50px 0;
+        }
+        /* 新增：加载更多提示样式 */
+        .load-more {
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            padding: 20px 0;
+            margin-top: 20px;
         }
         .refresh-tip {
             text-align: center;
@@ -199,10 +207,12 @@
         </div>
     </header>
 
-    <!-- 核心内容（删除中间的月份标签栏） -->
+    <!-- 核心内容 -->
     <h1 class="header">CH-同期热销品（同期3月）</h1>
-    <div class="loading" id="loading">加载中...</div>
+    <div class="loading" id="initialLoading">加载中...</div>
     <div class="container" id="product-container"></div>
+    <!-- 新增：加载更多提示 -->
+    <div class="load-more" id="loadMoreTip">加载中...</div>
     <div class="refresh-tip" id="refresh-tip">数据自动刷新，当前时间：<span id="current-time"></span></div>
 
     <script>
@@ -214,9 +224,15 @@
             mobileMenuBtn.textContent = navMenu.classList.contains('show') ? '←' : '☰';
         });
 
-        // 核心配置（确认JSON路径正确）
+        // 核心配置
         const JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/march_bestsellers.json";
         const REFRESH_INTERVAL = 5 * 60 * 1000;
+        // 分页配置（可根据性能调整）
+        const PAGE_SIZE = 20; // 每页加载20条，上万条数据分500页加载
+        let currentPage = 1; // 当前页码
+        let totalData = []; // 内存缓存全量数据
+        let isLoading = false; // 加载锁：防止重复加载
+        let hasMore = true; // 是否还有更多数据
 
         // 格式化时间工具函数
         function formatTime() {
@@ -231,7 +247,7 @@
             });
         }
 
-        // 懒加载初始化
+        // 懒加载初始化（仅渲染当前页的图片）
         function initLazyLoad() {
             if (!('IntersectionObserver' in window)) {
                 document.querySelectorAll('.product-img').forEach(img => {
@@ -281,86 +297,140 @@
                 threshold: 0.1
             });
 
+            // 只监听当前页面的图片
             document.querySelectorAll('.product-img').forEach(img => {
                 observer.observe(img);
             });
         }
 
-        // 渲染商品列表（修复JSON结构匹配问题）
-        async function renderProducts() {
-            const loadingEl = document.getElementById("loading");
-            const containerEl = document.getElementById("product-container");
-            const timeEl = document.getElementById("current-time");
-            
-            timeEl.textContent = formatTime();
+        // 渲染指定页的数据（核心优化：分页渲染）
+        function renderPageData(pageNum) {
+            // 计算当前页数据的起始和结束索引
+            const startIndex = (pageNum - 1) * PAGE_SIZE;
+            const endIndex = pageNum * PAGE_SIZE;
+            const pageData = totalData.slice(startIndex, endIndex);
 
+            // 没有更多数据
+            if (pageData.length === 0) {
+                hasMore = false;
+                document.getElementById('loadMoreTip').textContent = '没有更多数据了';
+                return;
+            }
+
+            const containerEl = document.getElementById('product-container');
+            // 追加渲染当前页数据（不是覆盖）
+            pageData.forEach(product => {
+                const imgSrc = product.first_image_url || "";
+                const searchKeyword = product.search_keyword || "未知关键词";
+                const price = product.price || "0.00";
+                const launchDate = product.launch_date || "未知上架时间";
+                const earliestReviewTime = product.earliest_review_time || "未知评论时间";
+                const primaryCategory = product.primary_category || "未知主分类";
+                const secondaryCategory = product.secondary_category || "未知子分类";
+                const shippingMethod = product.shipping_method || "未知配送方式";
+                const productUrl = product.url || "#";
+
+                const card = document.createElement("div");
+                card.className = "product-card";
+                card.innerHTML = `
+                    <img 
+                        class="product-img" 
+                        data-src="${imgSrc}"
+                        src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                        alt="${searchKeyword}"
+                        data-alt="${searchKeyword}"
+                    >
+                    <div class="product-name">${searchKeyword}</div>
+                    <div class="product-meta">
+                        <div><span class="label">价格：</span>${price}</div>
+                        <div><span class="label">上架时间：</span>${launchDate}</div>
+                        <div><span class="label">最早评论：</span>${earliestReviewTime}</div>
+                        <div><span class="label">主分类：</span>${primaryCategory}</div>
+                        <div><span class="label">子分类：</span>${secondaryCategory}</div>
+                        <div><span class="label">配送方式：</span>${shippingMethod}</div>
+                    </div>
+                    <a class="product-link" href="${productUrl}" target="_blank" rel="noopener noreferrer">查看商品详情</a>
+                `;
+                containerEl.appendChild(card);
+            });
+
+            // 初始化当前页的图片懒加载
+            initLazyLoad();
+            // 更新加载状态
+            isLoading = false;
+            document.getElementById('loadMoreTip').textContent = '上拉加载更多';
+        }
+
+        // 加载全量数据到内存（仅1次请求）
+        async function loadAllData() {
             try {
                 const response = await fetch(JSON_URL, { cache: "no-cache" });
                 if (!response.ok) throw new Error(`HTTP错误：${response.status}`);
                 
                 const jsonData = await response.json();
-                // 修复：匹配你的JSON实际key（"march_bestsellers"，小写m）
-                const products = jsonData["march_bestsellers"] || [];
-
-                containerEl.innerHTML = "";
-
-                if (products.length === 0) {
-                    containerEl.innerHTML = '<div style="text-align:center; width:100%; color:#666; padding: 50px 0;">暂无同期3月热销品数据</div>';
-                    return;
-                }
-
-                // 遍历渲染卡片
-                products.forEach(product => {
-                    const imgSrc = product.first_image_url || "";
-                    const searchKeyword = product.search_keyword || "未知关键词";
-                    const price = product.price || "0.00";
-                    const launchDate = product.launch_date || "未知上架时间";
-                    const earliestReviewTime = product.earliest_review_time || "未知评论时间";
-                    const primaryCategory = product.primary_category || "未知主分类";
-                    const secondaryCategory = product.secondary_category || "未知子分类";
-                    const shippingMethod = product.shipping_method || "未知配送方式";
-                    const productUrl = product.url || "#";
-
-                    const card = document.createElement("div");
-                    card.className = "product-card";
-                    card.innerHTML = `
-                        <img 
-                            class="product-img" 
-                            data-src="${imgSrc}"
-                            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                            alt="${searchKeyword}"
-                            data-alt="${searchKeyword}"
-                        >
-                        <div class="product-name">${searchKeyword}</div>
-                        <div class="product-meta">
-                            <div><span class="label">价格：</span>${price}</div>
-                            <div><span class="label">上架时间：</span>${launchDate}</div>
-                            <div><span class="label">最早评论：</span>${earliestReviewTime}</div>
-                            <div><span class="label">主分类：</span>${primaryCategory}</div>
-                            <div><span class="label">子分类：</span>${secondaryCategory}</div>
-                            <div><span class="label">配送方式：</span>${shippingMethod}</div>
-                        </div>
-                        <a class="product-link" href="${productUrl}" target="_blank" rel="noopener noreferrer">查看商品详情</a>
-                    `;
-                    containerEl.appendChild(card);
-                });
-
-                initLazyLoad();
-
+                totalData = jsonData["march_bestsellers"] || [];
+                
+                // 隐藏初始加载提示
+                document.getElementById('initialLoading').style.display = 'none';
+                // 渲染第一页数据
+                renderPageData(currentPage);
             } catch (error) {
-                loadingEl.textContent = "同期3月热销品数据加载失败，请刷新页面重试";
-                console.error("数据加载失败原因：", error);
-            } finally {
-                loadingEl.style.display = "none";
+                document.getElementById('initialLoading').textContent = "数据加载失败，请刷新页面重试";
+                console.error("全量数据加载失败：", error);
+                isLoading = false;
+                hasMore = false;
+                document.getElementById('loadMoreTip').textContent = '加载失败';
             }
         }
 
-        // 页面加载 + 自动刷新
+        // 加载下一页数据
+        async function loadNextPage() {
+            // 防止重复加载
+            if (isLoading || !hasMore) return;
+            
+            isLoading = true;
+            document.getElementById('loadMoreTip').textContent = '加载中...';
+            currentPage++;
+            renderPageData(currentPage);
+        }
+
+        // 监听滚动事件：滚动到底部自动加载下一页
+        function listenScroll() {
+            window.addEventListener('scroll', () => {
+                // 计算页面滚动位置：是否到了底部（距离底部100px时触发）
+                const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+                const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+                const clientHeight = document.documentElement.clientHeight || window.innerHeight;
+                
+                if (scrollTop + clientHeight >= scrollHeight - 100) {
+                    loadNextPage();
+                }
+            });
+        }
+
+        // 页面初始化
         window.onload = async function() {
-            await renderProducts();
+            // 更新当前时间
+            document.getElementById('current-time').textContent = formatTime();
+            
+            // 1. 加载全量数据到内存
+            await loadAllData();
+            // 2. 监听滚动事件，实现无限加载
+            listenScroll();
+
+            // 自动刷新逻辑（可选：刷新时重新加载全量数据）
             setInterval(async () => {
-                console.log("自动刷新同期3月热销品数据...");
-                await renderProducts();
+                console.log("自动刷新全量数据...");
+                // 重置分页状态
+                currentPage = 1;
+                hasMore = true;
+                totalData = [];
+                // 清空容器
+                document.getElementById('product-container').innerHTML = '';
+                // 重新加载全量数据
+                await loadAllData();
+                // 更新时间
+                document.getElementById('current-time').textContent = formatTime();
             }, REFRESH_INTERVAL);
         };
 
