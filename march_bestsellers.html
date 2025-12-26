@@ -269,10 +269,10 @@
     <script>
         // 核心配置 - 使用CDN加速
         // 注意：将 YOUR_USERNAME 替换为你的GitHub用户名
-        const JSON_URL = "https://cdn.jsdelivr.net/gh/lldch8601-arch/lldch8601-arch.github.io@main/march_bestsellers.json";
+        const JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/main/march_bestsellers.json";
         
         // 备用URL（如果CDN失败）
-        const FALLBACK_JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/main/march_bestsellers.json";
+        const FALLBACK_JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/march_bestsellers.json";
         
         const REFRESH_INTERVAL = 5 * 60 * 1000; // 5分钟刷新一次
         const PAGE_SIZE = 10; // 每页加载10条
