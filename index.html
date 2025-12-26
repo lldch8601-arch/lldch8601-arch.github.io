@@ -39,17 +39,22 @@
             color: #1677ff;
             text-decoration: none;
         }
-        /* 桌面端菜单 */
+        /* 桌面端菜单 + 下拉样式 */
         .nav-menu {
             display: flex;
             list-style: none;
             gap: 30px;
+            position: relative;
+        }
+        .nav-menu li {
+            position: relative;
         }
         .nav-menu li a {
             text-decoration: none;
             color: #333;
             font-size: 14px;
             transition: color 0.2s;
+            display: inline-block;
         }
         .nav-menu li a:hover {
             color: #1677ff;
@@ -58,7 +63,44 @@
             color: #1677ff;
             font-weight: bold;
         }
-        /* 移动端菜单按钮（屏幕<768px时显示） */
+        /* 月份下拉容器样式 */
+        .dropdown-container {
+            cursor: pointer;
+        }
+        .dropdown-arrow {
+            font-size: 10px;
+            margin-left: 4px;
+            transition: transform 0.2s;
+        }
+        .dropdown-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            list-style: none;
+            padding: 10px 0;
+            min-width: 150px;
+            display: none;
+            z-index: 1000;
+        }
+        .dropdown-list.show {
+            display: block;
+        }
+        .dropdown-list li {
+            padding: 0;
+        }
+        .dropdown-list li a {
+            display: block;
+            padding: 8px 16px;
+            color: #333;
+        }
+        .dropdown-list li a:hover {
+            background: #f5f5f5;
+            color: #1677ff;
+        }
+        /* 移动端菜单按钮 */
         .mobile-menu-btn {
             display: none;
             font-size: 20px;
@@ -83,12 +125,17 @@
             line-height: 1.6;
             margin-bottom: 40px;
         }
-        /* 新增：按钮组样式，保持间距 */
+        /* 按钮组样式 */
         .btn-group {
             display: flex;
             gap: 20px;
             justify-content: center;
             flex-wrap: wrap;
+        }
+        /* 主页下拉按钮样式 */
+        .dropdown-btn-wrapper {
+            position: relative;
+            display: inline-block;
         }
         .btn-go-products {
             display: inline-block;
@@ -99,11 +146,41 @@
             border-radius: 4px;
             font-size: 16px;
             transition: background 0.2s;
+            border: none;
+            cursor: pointer;
+            font-family: "Microsoft Yahei", sans-serif;
         }
         .btn-go-products:hover {
             background: #0958d9;
         }
-        /* 响应式适配（移动端） */
+        .home-dropdown-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            list-style: none;
+            padding: 10px 0;
+            display: none;
+            z-index: 999;
+        }
+        .home-dropdown-list.show {
+            display: block;
+        }
+        .home-dropdown-list li a {
+            display: block;
+            padding: 8px 16px;
+            color: #333;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .home-dropdown-list li a:hover {
+            background: #f5f5f5;
+            color: #1677ff;
+        }
+        /* 响应式适配 */
         @media (max-width: 768px) {
             .nav-menu {
                 display: none;
@@ -120,13 +197,17 @@
             .nav-menu.show {
                 display: flex;
             }
+            .dropdown-list {
+                position: static;
+                box-shadow: none;
+                padding: 5px 0 5px 20px;
+            }
             .mobile-menu-btn {
                 display: block;
             }
             .home-title {
                 font-size: 24px;
             }
-            /* 移动端按钮组垂直排列 */
             .btn-group {
                 flex-direction: column;
                 align-items: center;
@@ -142,42 +223,92 @@
     <header class="nav-header">
         <div class="nav-container">
             <a href="index.html" class="logo">CH-商品推荐</a>
-            <!-- 移动端菜单按钮 -->
             <div class="mobile-menu-btn" id="mobileMenuBtn">☰</div>
-            <!-- 导航菜单：新增“同期热销品”项 -->
+            <!-- 导航菜单：同期热销品下拉 -->
             <ul class="nav-menu" id="navMenu">
                 <li><a href="index.html" class="active">首页</a></li>
                 <li><a href="new_pro.html">最强新品推荐（潜力爆款）</a></li>
-                <li><a href="s_periods_bestsellers.html">同期热销品</a></li> <!-- 新增 -->
+                <li class="dropdown-container" id="navDropdown">
+                    <a href="javascript:;">同期热销品 <span class="dropdown-arrow">▼</span></a>
+                    <ul class="dropdown-list" id="navDropdownList">
+                        <!-- 修改：2025年3月 → 同期3月 -->
+                        <li><a href="march_bestsellers.html">同期3月</a></li>
+                        <!-- 后续扩展示例：
+                        <li><a href="april_bestsellers.html">同期4月</a></li>
+                        <li><a href="may_bestsellers.html">同期5月</a></li> -->
+                    </ul>
+                </li>
                 <li><a href="#">其他分类1（可扩展）</a></li>
                 <li><a href="#">其他分类2（可扩展）</a></li>
             </ul>
         </div>
     </header>
 
-    <!-- 主页内容：新增“同期热销品”按钮 -->
+    <!-- 主页内容 -->
     <main class="home-container">
         <h1 class="home-title">欢迎来到CH-商品推荐平台</h1>
         <p class="home-desc">
             专注于挖掘潜力爆款新品，为您推荐高性价比、高销量的优质商品。<br>
             点击下方按钮或导航菜单，查看最新的商品推荐列表。
         </p>
-        <!-- 新增：按钮组，包含原有和新增按钮 -->
         <div class="btn-group">
             <a href="new_pro.html" class="btn-go-products">查看最强新品推荐</a>
-            <a href="s_periods_bestsellers.html" class="btn-go-products">查看同期热销品</a> <!-- 新增 -->
+            <div class="dropdown-btn-wrapper" id="homeDropdown">
+                <button class="btn-go-products">查看同期热销品</button>
+                <ul class="home-dropdown-list" id="homeDropdownList">
+                    <!-- 修改：2025年3月 → 同期3月 -->
+                    <li><a href="march_bestsellers.html">同期3月</a></li>
+                    <!-- 后续扩展示例：
+                    <li><a href="april_bestsellers.html">同期4月</a></li>
+                    <li><a href="may_bestsellers.html">同期5月</a></li> -->
+                </ul>
+            </div>
         </div>
     </main>
 
     <script>
-        // 移动端菜单展开/收起逻辑
+        // 移动端菜单逻辑
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         const navMenu = document.getElementById('navMenu');
         
         mobileMenuBtn.addEventListener('click', () => {
             navMenu.classList.toggle('show');
-            // 切换菜单图标（☰ ←）
             mobileMenuBtn.textContent = navMenu.classList.contains('show') ? '←' : '☰';
+        });
+
+        // 导航栏下拉菜单逻辑
+        const navDropdown = document.getElementById('navDropdown');
+        const navDropdownList = document.getElementById('navDropdownList');
+        const dropdownArrow = navDropdown.querySelector('.dropdown-arrow');
+
+        navDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+            navDropdownList.classList.toggle('show');
+            dropdownArrow.style.transform = navDropdownList.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0)';
+        });
+
+        // 主页下拉按钮逻辑
+        const homeDropdown = document.getElementById('homeDropdown');
+        const homeDropdownList = document.getElementById('homeDropdownList');
+
+        homeDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+            homeDropdownList.classList.toggle('show');
+        });
+
+        // 点击空白处关闭下拉
+        document.addEventListener('click', () => {
+            navDropdownList.classList.remove('show');
+            dropdownArrow.style.transform = 'rotate(0)';
+            homeDropdownList.classList.remove('show');
+        });
+
+        // 窗口大小变化重置菜单
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768 && navMenu.classList.contains('show')) {
+                navMenu.classList.remove('show');
+                mobileMenuBtn.textContent = '☰';
+            }
         });
     </script>
 </body>
