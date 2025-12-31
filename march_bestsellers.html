@@ -3,226 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CH-商品推荐</title>
+    <title>CH-同期3月热销品</title>
     <style>
-        /* 基础样式补充 */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-        body {
-            padding: 0;
-            margin: 0;
-        }
-        /* 顶部导航栏样式 - 恢复并优化 */
-        .top-nav {
-            padding: 15px 20px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        /* ================= 基础样式 ================= */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft Yahei", sans-serif; }
+        body { background: #f5f5f5; padding-bottom: 50px; }
+        
+        /* ================= 导航栏 ================= */
+        .nav-header {
             background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 0 20px;
             position: sticky;
             top: 0;
             z-index: 999;
         }
-        .nav-title {
-            font-size: 18px;
-            color: #1677ff;
-            font-weight: bold;
-        }
-        .nav-menu {
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
             display: flex;
-            gap: 20px;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
         }
-        .nav-item {
-            color: #666;
-            text-decoration: none;
-            font-size: 14px;
-        }
-        .nav-item.active {
-            color: #1677ff;
-            font-weight: bold;
-        }
-        /* 主体内容布局调整（适配固定侧边栏） */
-        .main-wrapper {
+        .logo { font-size: 18px; font-weight: bold; color: #1677ff; text-decoration: none; }
+        .nav-menu { display: flex; list-style: none; gap: 30px; }
+        .nav-menu li a { text-decoration: none; color: #333; font-size: 14px; transition: color 0.2s; }
+        .nav-menu li a:hover, .nav-menu li a.active { color: #1677ff; font-weight: bold; }
+
+        /* ================= 核心布局 (解决侧边栏滚动消失问题) ================= */
+        .header { text-align: center; margin: 30px 0; color: #333; }
+        .main-content {
             display: flex;
-            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
             gap: 20px;
+            /* 关键：防止侧边栏高度被拉伸，否则 sticky 失效 */
+            align-items: flex-start; 
         }
-        /* 固定侧边栏样式 - 核心修改 */
+
+        /* 侧边栏固定样式 */
         .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            min-width: 100px;
-            position: fixed; /* 固定定位 */
-            top: 80px; /* 避开顶部导航栏 */
-            left: 20px;
-            z-index: 998;
+            width: 80px;
+            flex-shrink: 0;
+            /* 核心代码：吸顶效果 */
+            position: sticky;
+            top: 80px; /* 距离顶部的距离 (导航栏高度 + 间距) */
+            z-index: 10;
         }
         .sidebar-btn {
-            padding: 8px 16px;
-            border: 1px solid #1677ff;
-            background: #fff;
-            color: #1677ff;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s;
+            display: block; width: 100%; padding: 12px 0; margin-bottom: 10px;
+            background: #fff; border: 1px solid #e0e0e0; border-radius: 6px;
+            cursor: pointer; transition: all 0.2s; font-size: 13px; color: #666;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-        .sidebar-btn.active {
-            background: #1677ff;
-            color: #fff;
+        .sidebar-btn:hover, .sidebar-btn.active {
+            background: #1677ff; color: white; border-color: #1677ff;
+            box-shadow: 0 4px 10px rgba(22, 119, 255, 0.3);
         }
-        /* 产品容器调整左边距（避开固定侧边栏） */
-        .container-wrap {
-            flex: 1;
-            margin-left: 120px; /* 适配侧边栏宽度+间距 */
+
+        /* 右侧内容区 */
+        .content-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+        /* ================= 筛选状态栏 ================= */
+        .filter-status-bar {
+            display: none; /* 默认隐藏 */
+            background: #e6f7ff; border: 1px solid #91caff;
+            padding: 15px 20px; margin-bottom: 20px; border-radius: 8px;
+            align-items: center; justify-content: space-between;
+            color: #0050b3; font-size: 15px;
+            box-shadow: 0 2px 8px rgba(0, 80, 179, 0.1);
         }
-        .header {
-            text-align: left;
-            margin-bottom: 20px;
-            font-size: 24px;
-            display: none; /* 隐藏原标题，用顶部导航的标题 */
+        .filter-status-bar.show { display: flex; animation: slideDown 0.3s ease-out; }
+        
+        .status-actions { display: flex; gap: 10px; }
+        
+        /* 按钮组样式 */
+        .btn-action {
+            border: none; padding: 6px 16px; border-radius: 4px; cursor: pointer;
+            font-size: 13px; font-weight: 500; transition: all 0.2s;
+            display: flex; align-items: center; gap: 5px;
         }
-        .loading, .load-more, .refresh-tip {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-        .product-container {
+        .btn-jump { background: #faad14; color: white; }
+        .btn-jump:hover { background: #d48806; }
+        
+        .btn-clear { background: #1677ff; color: white; }
+        .btn-clear:hover { background: #0958d9; }
+
+        @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* ================= 商品网格布局 ================= */
+        .container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
             gap: 20px;
+            margin-bottom: 30px;
         }
+
+        /* 卡片通用样式 */
         .product-card {
-            border: 1px solid #eee;
-            border-radius: 8px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            background: white; border-radius: 8px; padding: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s;
+            display: flex; flex-direction: column;
         }
+        .product-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.12); }
+        
+        /* 图片样式 */
         .product-img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 4px;
-            background: #f5f5f5;
+            width: 100%; height: 220px; object-fit: cover; border-radius: 6px;
+            margin-bottom: 10px; background: #f0f0f0; transition: opacity 0.3s;
         }
-        .product-img.error {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ff4d4f;
-            cursor: pointer;
-        }
+        .product-img.loaded { opacity: 1; }
+        
+        /* 文本信息 */
         .product-name {
-            font-size: 14px;
-            color: #333;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            cursor: pointer;
+            font-size: 14px; color: #333; line-height: 1.4; margin-bottom: 8px;
+            height: 40px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+            font-weight: 500;
         }
-        .product-meta {
-            font-size: 12px;
-            color: #666;
+        .product-meta { font-size: 12px; color: #666; margin-bottom: 4px; display: flex; justify-content: space-between; }
+        
+        /* 核心词点击链接 */
+        .clickable-term {
+            color: #1677ff; cursor: pointer; text-decoration: underline; font-weight: bold;
         }
-        .search-word-tag {
-            color: #1677ff;
-            cursor: pointer;
-            text-decoration: underline;
-        }
-        .search-word-tag:hover {
-            color: #0958d9;
-        }
+        .clickable-term:hover { background-color: #f0f5ff; }
+
+        /* 价格强调 */
+        .price-tag { color: #cf1322; font-weight: bold; font-size: 14px; }
+
+        /* 链接按钮 */
         .product-link {
-            display: inline-block;
-            margin-top: 8px;
-            padding: 6px 12px;
-            background: #1677ff;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 4px;
-            font-size: 12px;
-            text-align: center;
+            display: block; text-align: center; margin-top: auto; padding: 8px;
+            background: #f0f5ff; color: #1677ff; text-decoration: none;
+            border-radius: 4px; font-size: 12px; font-weight: 500;
         }
-        .title-popup {
-            position: fixed;
-            background: rgba(0,0,0,0.8);
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 14px;
-            max-width: 300px;
-            z-index: 999;
-            display: none;
-            pointer-events: none;
-        }
-        .skeleton-card {
-            width: 100%;
-            height: 350px;
-            background: #f5f5f5;
+        .product-link:hover { background: #1677ff; color: white; }
+
+        /* ================= 新增：1688 新品展示区 ================= */
+        .pro-section {
+            display: none; /* 默认隐藏 */
+            margin-top: 20px;
+            border-top: 2px dashed #d9d9d9;
+            padding-top: 30px;
+            background: #fffbe6; /* 淡淡的黄色背景区分 */
+            padding: 20px;
             border-radius: 8px;
-            animation: skeleton-loading 1s linear infinite alternate;
+            border: 1px solid #ffe58f;
         }
-        @keyframes skeleton-loading {
-            0% { opacity: 0.5; }
-            100% { opacity: 0.8; }
+        .pro-section.active { display: block; animation: fadeIn 0.5s; }
+        
+        .pro-header {
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 25px; gap: 10px;
         }
-        /* 返回按钮样式优化 */
-        .back-btn-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 999;
+        .pro-title { font-size: 20px; color: #d46b08; font-weight: bold; }
+        .pro-badge { background: #d46b08; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+
+        /* 1688 卡片特殊样式 */
+        .pro-card { border: 1px solid #ffe58f; }
+        .pro-link { background: #fff7e6; color: #d46b08; }
+        .pro-link:hover { background: #d46b08; color: white; }
+
+        /* ================= 辅助元素 ================= */
+        .loading, .load-more { text-align: center; color: #999; padding: 20px; font-size: 14px; }
+        .title-popup {
+            position: fixed; background: rgba(0,0,0,0.8); color: white;
+            padding: 8px 12px; border-radius: 4px; font-size: 12px; z-index: 1000;
+            display: none; max-width: 300px; pointer-events: none;
         }
-        .back-btn {
-            padding: 8px 16px;
-            background: #fff;
-            border: 1px solid #1677ff;
-            color: #1677ff;
-            border-radius: 4px;
-            cursor: pointer;
-            display: none;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .back-btn.show {
-            display: block;
-        }
-        .back-btn:hover {
-            background: #1677ff;
-            color: #fff;
-        }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
-    <!-- 恢复顶部导航栏 - 核心修改1 -->
-    <div class="top-nav">
-        <div class="nav-title">CH-商品推荐</div>
-        <div class="nav-menu">
-            <a href="#" class="nav-item active">首页</a>
-            <a href="#" class="nav-item">最强新品推荐(潜力爆款)</a>
-            <a href="#" class="nav-item">同期热销品 ▼</a>
-            <a href="#" class="nav-item">其他分类1(可扩展)</a>
-            <a href="#" class="nav-item">其他分类2(可扩展)</a>
+
+    <header class="nav-header">
+        <div class="nav-container">
+            <a href="index.html" class="logo">CH-商品推荐</a>
+            <ul class="nav-menu">
+                <li><a href="index.html">首页</a></li>
+                <li><a href="new_pro.html">最强新品</a></li>
+                <li><a href="march_bestsellers.html" class="active">同期3月热销</a></li>
+            </ul>
         </div>
-    </div>
+    </header>
 
-    <!-- 返回按钮容器 -->
-    <div class="back-btn-container">
-        <button class="back-btn" id="backBtn">返回主页面</button>
-    </div>
+    <h1 class="header">CH-同期热销品（同期3月）</h1>
+    <div class="loading" id="initialLoading">正在加载数据...</div>
 
-    <div class="loading" id="initialLoading">加载中...</div>
-    
-    <!-- 主体布局调整（适配固定侧边栏） -->
-    <div class="main-wrapper">
-        <!-- 固定侧边栏 - 核心修改2 -->
+    <div class="main-content">
+        <!-- 侧边栏：Sticky固定 -->
         <div class="sidebar">
             <button class="sidebar-btn" data-filter="FBA">FBA</button>
             <button class="sidebar-btn" data-filter="FBM">FBM</button>
@@ -230,484 +201,337 @@
             <button class="sidebar-btn" data-filter="缺货">缺货</button>
         </div>
 
-        <!-- 产品容器包裹层（避开固定侧边栏） -->
-        <div class="container-wrap">
-            <div class="container product-container" id="product-container"></div>
+        <div class="content-area">
+            <!-- 顶部筛选状态栏 -->
+            <div id="filter-status-bar" class="filter-status-bar">
+                <div>
+                    🔍 核心搜索词：<b id="active-term-text" style="font-size: 16px; margin-right: 10px;"></b>
+                    <span style="font-size: 12px; color: #666;">(已展示相关热销品)</span>
+                </div>
+                <div class="status-actions">
+                    <!-- 交互按钮：跳转到下方 -->
+                    <button class="btn-action btn-jump" onclick="scrollToProSection()">
+                        ⚡ 查看1688同类新品
+                    </button>
+                    <!-- 返回按钮 -->
+                    <button class="btn-action btn-clear" onclick="clearCoreTermFilter()">
+                        🔙 返回全部
+                    </button>
+                </div>
+            </div>
+
+            <!-- 第一部分：亚马逊热销品 -->
+            <div class="container" id="product-container"></div>
+            <div class="load-more" id="loadMoreTip" style="display: none;">加载中...</div>
+
+            <!-- 第二部分：1688新品 (默认隐藏) -->
+            <div id="pro-section" class="pro-section">
+                <div class="pro-header">
+                    <span class="pro-badge">1688</span>
+                    <h2 class="pro-title">同类新品推荐</h2>
+                    <span style="color:#888; font-size: 14px;">(匹配搜索词：<span id="pro-term-text"></span>)</span>
+                </div>
+                <!-- 这里展示 mar_pro.json 的数据 -->
+                <div class="container" id="pro-container"></div>
+                <div id="pro-empty-tip" style="text-align: center; color: #999; padding: 20px; display: none;">
+                    暂无该搜索词对应的 1688 新品
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="load-more" id="loadMoreTip" style="display: none;">加载中...</div>
-    <div class="refresh-tip" id="refresh-tip">数据自动刷新，当前时间：<span id="current-time"></span></div>
+    <!-- Title悬浮提示 -->
+    <div id="titlePopup" class="title-popup"></div>
 
     <script>
-        // 核心配置
-        const JSON_URL = "https://img.hohopick.top/march_bestsellers.json";
-        const REFRESH_INTERVAL = 5 * 60 * 1000; // 5分钟刷新
-        const PAGE_SIZE = 10; // 每页10条
+        // ================= 配置区域 =================
+        const URL_BESTSELLERS = "https://img.hohopick.top/march_bestsellers.json";
+        const URL_PRO = "https://img.hohopick.top/mar_pro.json"; // 1688新品数据源
+        const PAGE_SIZE = 12;
+
+        // ================= 全局变量 =================
+        let allBestsellers = []; // 热销品全量数据
+        let allProProducts = []; // 1688全量数据
         
-        // 全局状态（重构返回逻辑 - 核心修改3）
+        let filteredBestsellers = []; // 筛选后的热销品
         let currentPage = 1;
-        let totalData = [];
-        let filteredData = [];
-        let currentFilter = ""; // FBA/FBM等筛选
-        let searchWordFilter = ""; // 核心搜索词筛选
-        let isLoading = false;
-        let hasMore = true;
+        
+        let currentFilter = ""; // FBA/FBM 筛选
+        let currentCoreTerm = ""; // 核心搜索词筛选
+        
         let isFirstLoad = true;
-        // 新增：标记是否处于搜索词筛选模式（只要进入就一直显示返回按钮）
-        let isInSearchWordMode = false;
-        // 新增：保存首次点击搜索词前的「主页面初始状态」
-        let initialMainState = {
-            currentFilter: "",
-            searchWordFilter: "",
-            currentPage: 1,
-            scrollTop: 0,
-            hasMore: true
-        };
-        let allImgElements = []; // 存储所有图片元素，用于预加载
+        let isLoading = false;
 
-        // 图片加载配置
-        const MAX_IMAGE_CONCURRENT = 3; // 并发加载数
-        const PRELOAD_COUNT = 5; // 预加载后面的5张图片
-        let imageLoadQueue = [];
-        let currentLoadingCount = 0;
+        // ================= 初始化 =================
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadAllData();
+            initSidebar();
+            initScroll();
+            initPopup();
+        });
 
-        // 初始化骨架屏
-        function showSkeletonScreen(count = 8) {
-            const container = document.getElementById('product-container');
-            container.innerHTML = '';
-            for (let i = 0; i < count; i++) {
-                const skeleton = document.createElement('div');
-                skeleton.className = 'skeleton-card';
-                container.appendChild(skeleton);
-            }
-            document.getElementById('initialLoading').style.display = 'none';
-        }
-
-        // 移除骨架屏
-        function removeSkeletonScreen() {
-            const skeletons = document.querySelectorAll('.skeleton-card');
-            skeletons.forEach(skeleton => skeleton.remove());
-        }
-
-        // 格式化时间
-        function formatTime() {
-            return new Date().toLocaleString("zh-CN", {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
-        }
-
-        // 图片压缩函数
-        function optimizeAmazonImageUrl(originalUrl) {
-            if (!originalUrl || !originalUrl.includes("amazon.com/images/")) {
-                return originalUrl;
-            }
-            return originalUrl.replace(/_AC_SL\d+_/g, "_AC_SL300_");
-        }
-
-        // 预加载检查
-        function checkPreload() {
-            const firstUnloadedIndex = allImgElements.findIndex(img => {
-                const isLoaded = img.classList.contains('loaded') || img.classList.contains('error');
-                const isInQueue = imageLoadQueue.some(item => item.element === img);
-                return !isLoaded && !isInQueue;
-            });
-
-            if (firstUnloadedIndex !== -1) {
-                const preloadEndIndex = Math.min(firstUnloadedIndex + PRELOAD_COUNT, allImgElements.length);
-                for (let i = firstUnloadedIndex; i < preloadEndIndex; i++) {
-                    const img = allImgElements[i];
-                    imageLoadQueue.push({
-                        element: img,
-                        src: img.dataset.src,
-                        alt: img.dataset.alt || '热销品图片'
-                    });
-                }
-                processImageQueue();
-            }
-        }
-
-        // 处理图片加载队列
-        function processImageQueue() {
-            if (imageLoadQueue.length === 0 || currentLoadingCount >= MAX_IMAGE_CONCURRENT) {
-                return;
-            }
-            const imgItem = imageLoadQueue.shift();
-            currentLoadingCount++;
-
-            const newImg = new Image();
-            newImg.src = imgItem.src + '?t=' + new Date().getTime();
-            
-            newImg.onload = () => {
-                imgItem.element.src = imgItem.src;
-                imgItem.element.classList.add('loaded');
-                imgItem.element.alt = imgItem.alt;
-                currentLoadingCount--;
-                processImageQueue();
-                checkPreload();
-            };
-            
-            newImg.onerror = () => {
-                imgItem.element.classList.add('error');
-                imgItem.element.alt = '点击重新加载';
-                imgItem.element.addEventListener('click', () => {
-                    setTimeout(() => {
-                        imageLoadQueue.unshift(imgItem);
-                        processImageQueue();
-                    }, 2000);
-                }, { once: true });
-                currentLoadingCount--;
-                processImageQueue();
-                checkPreload();
-            };
-        }
-
-        // 懒加载初始化
-        function initLazyLoad() {
-            imageLoadQueue = [];
-            currentLoadingCount = 0;
-            allImgElements = Array.from(document.querySelectorAll('.product-img'));
-
-            if (!('IntersectionObserver' in window)) {
-                allImgElements.forEach(img => {
-                    imageLoadQueue.push({
-                        element: img,
-                        src: img.dataset.src,
-                        alt: img.dataset.alt || '热销品图片'
-                    });
-                });
-                processImageQueue();
-                return;
-            }
-
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const img = entry.target;
-                        if (!img.classList.contains('loaded') && !img.classList.contains('error')) {
-                            imageLoadQueue.push({
-                                element: img,
-                                src: img.dataset.src,
-                                alt: img.dataset.alt || '热销品图片'
-                            });
-                            processImageQueue();
-                        }
-                        observer.unobserve(img);
-                    }
-                });
-            }, { rootMargin: '200px 0px', threshold: 0.01 });
-
-            allImgElements.forEach(img => {
-                observer.observe(img);
-            });
-
-            setTimeout(checkPreload, 500);
-        }
-
-        // 筛选数据（保留组合筛选逻辑）
-        function filterData() {
-            filteredData = totalData.filter(item => {
-                // 配送方式筛选
-                const shippingMatch = currentFilter 
-                    ? (item.shipping_method || item['配送方式']) === currentFilter 
-                    : true;
-                // 核心搜索词筛选
-                const searchWordMatch = searchWordFilter 
-                    ? (item['搜索词'] || item['核心搜索词中文']) === searchWordFilter 
-                    : true;
-                return shippingMatch && searchWordMatch;
-            });
-        }
-
-        // 核心搜索词点击事件处理 - 重构逻辑
-        function handleSearchWordClick(searchWord) {
-            // 首次点击搜索词时，保存「主页面初始状态」
-            if (!isInSearchWordMode) {
-                initialMainState = {
-                    currentFilter: currentFilter,
-                    searchWordFilter: searchWordFilter,
-                    currentPage: currentPage,
-                    scrollTop: document.documentElement.scrollTop || document.body.scrollTop,
-                    hasMore: hasMore
-                };
-            }
-            // 标记进入搜索词筛选模式（只要进入就一直显示返回按钮）
-            isInSearchWordMode = true;
-            // 设置新的核心搜索词筛选
-            searchWordFilter = searchWord;
-            // 重置分页
-            currentPage = 1;
-            hasMore = true;
-            // 清空容器并重新渲染
-            document.getElementById('product-container').innerHTML = '';
-            renderPageData(currentPage);
-            // 强制显示返回按钮（只要在搜索词模式就显示）
-            document.getElementById('backBtn').classList.add('show');
-            // 滚动到顶部（可选，也可保留原位置）
-            window.scrollTo(0, 0);
-        }
-
-        // 返回按钮事件处理 - 重构逻辑
-        function handleBackClick() {
-            // 只有处于搜索词模式时才执行返回
-            if (isInSearchWordMode) {
-                // 恢复「主页面初始状态」
-                currentFilter = initialMainState.currentFilter;
-                searchWordFilter = initialMainState.searchWordFilter;
-                currentPage = initialMainState.currentPage;
-                hasMore = initialMainState.hasMore;
-                // 清空容器并重新渲染主页面
-                document.getElementById('product-container').innerHTML = '';
-                renderPageData(currentPage);
-                // 退出搜索词模式
-                isInSearchWordMode = false;
-                // 隐藏返回按钮
-                document.getElementById('backBtn').classList.remove('show');
-                // 恢复首次点击搜索词前的滚动位置
-                setTimeout(() => {
-                    window.scrollTo(0, initialMainState.scrollTop);
-                }, 100);
-            }
-        }
-
-        // 渲染数据（保留原有展示逻辑）
-        function renderPageData(pageNum) {
-            filterData();
-            const startIndex = (pageNum - 1) * PAGE_SIZE;
-            const endIndex = pageNum * PAGE_SIZE;
-            const pageData = filteredData.slice(startIndex, endIndex);
-
-            if (pageData.length === 0) {
-                hasMore = false;
-                document.getElementById('loadMoreTip').textContent = '没有更多数据了';
-                return;
-            }
-
-            const containerEl = document.getElementById('product-container');
-            pageData.forEach(product => {
-                const rawImg = product['图片链接'] || product.first_image_url || "";
-                const imgSrc = optimizeAmazonImageUrl(rawImg);
-                
-                const productTitle = product['商品名称'] || product.title || "未知标题";
-                const productLink = product['产品链接'] || product.url || "#";
-                const coreSearchWord = product['搜索词'] || product['核心搜索词中文'] || "未知";
-                const searchKeyword = product.searchkeyword || product['搜索关键词'] || "未知关键词";
-                const price = product.price || "0.00";
-                const date = product['上架时间'] || product.launch_date || "未知";
-                const shipping = product.shipping_method || product['配送方式'] || "";
-
-                const card = document.createElement("div");
-                card.className = "product-card";
-                card.innerHTML = `
-                    <img 
-                        class="product-img" 
-                        data-src="${imgSrc}"
-                        src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
-                        alt="${productTitle}"
-                        data-alt="${productTitle}"
-                        loading="lazy"
-                    >
-                    <div class="product-name" data-title="${productTitle}">${productTitle}</div>
-                    <div class="product-meta">${shipping}</div>
-                    <div class="product-meta">核心搜索词：<span class="search-word-tag" data-word="${coreSearchWord}">${coreSearchWord}</span></div>
-                    <div class="product-meta">搜索关键词：${searchKeyword}</div>
-                    <div class="product-meta">价格：${price}</div>
-                    <div class="product-meta">上架时间：${date}</div>
-                    <a class="product-link" href="${productLink}" target="_blank" rel="noopener noreferrer">查看商品详情</a>
-                `;
-                containerEl.appendChild(card);
-
-                // 给核心搜索词添加点击事件
-                const searchWordTag = card.querySelector('.search-word-tag');
-                searchWordTag.addEventListener('click', () => {
-                    handleSearchWordClick(coreSearchWord);
-                });
-            });
-
-            // 首次加载移除骨架屏
-            if (isFirstLoad && pageNum === 1) {
-                removeSkeletonScreen();
-                isFirstLoad = false;
-            }
-
-            initLazyLoad();
-            isLoading = false;
-            document.getElementById('loadMoreTip').textContent = hasMore ? '上拉加载更多' : '没有更多数据了';
-            document.getElementById('loadMoreTip').style.display = hasMore ? 'block' : 'none';
-            
-            // 核心：只要处于搜索词模式，返回按钮就显示
-            if (isInSearchWordMode) {
-                document.getElementById('backBtn').classList.add('show');
-            }
-        }
-
-        // 加载全量数据
+        // 1. 同时加载两个 JSON 数据
         async function loadAllData() {
-            if (isFirstLoad) showSkeletonScreen();
+            if(isFirstLoad) document.getElementById('initialLoading').style.display = 'block';
 
             try {
-                const response = await fetch(JSON_URL, { cache: "no-cache" });
-                if (!response.ok) throw new Error(`HTTP错误：${response.status}`);
+                // 并行加载两个文件，提高速度
+                const [res1, res2] = await Promise.all([
+                    fetch(URL_BESTSELLERS, {cache: "no-cache"}),
+                    fetch(URL_PRO, {cache: "no-cache"})
+                ]);
+
+                if (!res1.ok) throw new Error("热销品数据加载失败");
                 
-                const jsonData = await response.json();
+                // 解析热销品
+                const json1 = await res1.json();
+                allBestsellers = Array.isArray(json1) ? json1 : (json1["march_bestsellers"] || []);
                 
-                if (Array.isArray(jsonData)) {
-                    totalData = jsonData;
+                // 解析1688新品 (如果文件不存在或出错，不影响主流程)
+                if (res2.ok) {
+                    const json2 = await res2.json();
+                    // 兼容数组或对象格式
+                    allProProducts = Array.isArray(json2) ? json2 : (json2["mar_pro"] || []);
                 } else {
-                    totalData = jsonData["march_bestsellers"] || [];
+                    console.warn("1688数据加载失败或文件不存在");
                 }
+
+                // 渲染初始页面
+                filteredBestsellers = [...allBestsellers];
+                renderBestsellers(1);
                 
-                filteredData = [...totalData];
-                
-                currentPage = 1;
-                hasMore = totalData.length > 0;
-                renderPageData(currentPage);
-                
-                return true;
-            } catch (error) {
-                console.error("数据加载失败：", error);
-                removeSkeletonScreen();
-                
-                const container = document.getElementById('product-container');
-                container.innerHTML = `
-                    <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px;">
-                        <div style="color: #ff4d4f; font-size: 16px; margin-bottom: 10px;">数据加载失败</div>
-                        <div style="color: #666; font-size: 14px; margin-bottom: 20px;">请检查网络连接或稍后重试</div>
-                        <button id="retryBtn" style="padding: 8px 16px; background: #1677ff; color: white; border: none; border-radius: 4px; cursor: pointer;">重新加载</button>
-                    </div>
-                `;
-                
-                document.getElementById('retryBtn').addEventListener('click', async () => {
-                    document.getElementById('product-container').innerHTML = '';
-                    isFirstLoad = true;
-                    await loadAllData();
-                });
-                
-                return false;
+                document.getElementById('initialLoading').style.display = 'none';
+                isFirstLoad = false;
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById('initialLoading').innerHTML = 
+                    `<span style="color:red">数据加载失败: ${e.message}</span><br><button onclick="location.reload()">重试</button>`;
             }
         }
 
-        // 加载下一页
-        async function loadNextPage() {
-            if (isLoading || !hasMore) return;
+        // ================= 核心筛选逻辑 =================
+
+        // 触发核心词筛选 (点击卡片上的词)
+        window.setCoreTermFilter = function(term) {
+            currentCoreTerm = term;
             
-            isLoading = true;
-            const loadMoreTip = document.getElementById('loadMoreTip');
-            loadMoreTip.textContent = '加载中...';
-            loadMoreTip.style.display = 'block';
+            // 1. 更新 UI 状态
+            document.getElementById('active-term-text').textContent = term;
+            document.getElementById('filter-status-bar').classList.add('show');
             
-            currentPage++;
-            renderPageData(currentPage);
+            // 2. 筛选并重绘上方热销品
+            applyFilters();
+            
+            // 3. 筛选并绘制下方 1688 新品
+            renderProSection(term);
+            
+            // 4. 滚动到顶部
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // 滚动监听
-        function listenScroll() {
-            let scrollTimer;
-            window.addEventListener('scroll', () => {
-                clearTimeout(scrollTimer);
-                scrollTimer = setTimeout(() => {
-                    const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-                    const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
-                    const clientHeight = document.documentElement.clientHeight || window.innerHeight;
-                    
-                    if (scrollTop + clientHeight >= scrollHeight - 200) {
-                        loadNextPage();
-                    }
-                }, 50);
+        // 清除核心词筛选
+        window.clearCoreTermFilter = function() {
+            currentCoreTerm = "";
+            document.getElementById('filter-status-bar').classList.remove('show');
+            document.getElementById('pro-section').classList.remove('active');
+            
+            applyFilters();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 跳转到下方区域
+        window.scrollToProSection = function() {
+            const section = document.getElementById('pro-section');
+            if(section.classList.contains('active')) {
+                // 偏移一点距离，不要贴顶
+                const y = section.getBoundingClientRect().top + window.scrollY - 80;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            }
+        }
+
+        // 统一筛选函数 (FBA + 搜索词)
+        function applyFilters() {
+            filteredBestsellers = allBestsellers.filter(item => {
+                // 配送方式匹配
+                const shipping = item.shipping_method || item['配送方式'];
+                const matchShipping = currentFilter ? shipping === currentFilter : true;
+                
+                // 搜索词匹配
+                const term = item['核心搜索词中文'] || item['搜索词'] || "";
+                const matchTerm = currentCoreTerm ? term === currentCoreTerm : true;
+                
+                return matchShipping && matchTerm;
+            });
+
+            currentPage = 1;
+            document.getElementById('product-container').innerHTML = '';
+            renderBestsellers(currentPage);
+        }
+
+        // ================= 渲染逻辑 =================
+
+        // 渲染热销品 (无限滚动)
+        function renderBestsellers(page) {
+            const start = (page - 1) * PAGE_SIZE;
+            const end = page * PAGE_SIZE;
+            const list = filteredBestsellers.slice(start, end);
+            
+            const container = document.getElementById('product-container');
+            const loadMore = document.getElementById('loadMoreTip');
+
+            if (list.length === 0 && page === 1) {
+                container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#999">暂无匹配商品</div>';
+                loadMore.style.display = 'none';
+                return;
+            }
+
+            list.forEach(item => {
+                // 字段映射
+                const title = item['商品名称'] || item.title || "未知";
+                const img = optimizeImg(item['图片链接'] || item.first_image_url);
+                const link = item['产品链接'] || item.url || "#";
+                const term = item['核心搜索词中文'] || item['搜索词'] || "";
+                const price = item['价格'] || item.price || "0.00";
+                const date = item['上架时间'] || item.launch_date || "-";
+                const ship = item.shipping_method || item['配送方式'] || "";
+
+                // 核心搜索词 - 增加点击事件
+                const termHtml = term ? 
+                    `<span class="clickable-term" onclick="setCoreTermFilter('${term}')" title="点击筛选此核心词">${term}</span>` : "无";
+                
+                // 搜索关键词 (mar_pro.json 里没有这个，这是 bestsellers 特有的)
+                const keyword = item['搜索关键词'] || item['search_keyword'] || "-";
+
+                const div = document.createElement('div');
+                div.className = 'product-card';
+                div.innerHTML = `
+                    <img class="product-img" src="${img}" loading="lazy" onerror="this.classList.add('error')">
+                    <div class="product-name" onmouseover="showPopup(this, '${title}')" onmouseout="hidePopup()">${title}</div>
+                    <div class="product-meta"><span style="background:#f0f0f0;padding:2px 6px;border-radius:4px">${ship}</span> <span class="price-tag">${price}</span></div>
+                    <div class="product-meta">核心词：${termHtml}</div>
+                    <div class="product-meta">关键词：${keyword}</div>
+                    <div class="product-meta">上架：${date}</div>
+                    <a class="product-link" href="${link}" target="_blank">查看亚马逊详情</a>
+                `;
+                container.appendChild(div);
+            });
+
+            loadMore.style.display = (end < filteredBestsellers.length) ? 'block' : 'none';
+            loadMore.textContent = (end < filteredBestsellers.length) ? '上拉加载更多...' : '没有更多了';
+            isLoading = false;
+        }
+
+        // 渲染 1688 新品区域 (一次性渲染，不做分页，通常数量不多)
+        function renderProSection(targetTerm) {
+            const container = document.getElementById('pro-container');
+            container.innerHTML = '';
+            document.getElementById('pro-term-text').textContent = targetTerm;
+            
+            // 筛选 1688 数据
+            // 注意：mar_pro.json 里的字段是 '搜索词'
+            const proList = allProProducts.filter(item => {
+                const itemTerm = item['搜索词'] || "";
+                return itemTerm === targetTerm;
+            });
+
+            const section = document.getElementById('pro-section');
+            const emptyTip = document.getElementById('pro-empty-tip');
+            
+            section.classList.add('active'); // 显示区域
+
+            if (proList.length === 0) {
+                emptyTip.style.display = 'block';
+                return;
+            }
+            emptyTip.style.display = 'none';
+
+            proList.forEach(item => {
+                const title = item['商品名称'] || "未知新品";
+                const img = optimizeImg(item['图片链接']);
+                const link = item['产品链接'] || "#";
+                const date = item['上架时间'] || "-";
+                const term = item['搜索词'] || "";
+
+                const div = document.createElement('div');
+                div.className = 'product-card pro-card'; // 增加 pro-card 样式
+                div.innerHTML = `
+                    <img class="product-img" src="${img}" loading="lazy" onerror="this.classList.add('error')">
+                    <div class="product-name" onmouseover="showPopup(this, '${title}')" onmouseout="hidePopup()">${title}</div>
+                    <div class="product-meta" style="color:#d46b08;font-weight:bold">1688 新品推荐</div>
+                    <div class="product-meta">匹配词：${term}</div>
+                    <div class="product-meta">上架：${date}</div>
+                    <a class="product-link pro-link" href="${link}" target="_blank">查看 1688 详情</a>
+                `;
+                container.appendChild(div);
             });
         }
 
-        // 筛选按钮逻辑（修改：在搜索词模式内筛选，返回按钮仍显示）
-        function initFilterButtons() {
-            const filterBtns = document.querySelectorAll('.sidebar-btn');
-            filterBtns.forEach(btn => {
+        // ================= 工具函数 =================
+        
+        // 亚马逊图片优化
+        function optimizeImg(url) {
+            if (!url) return ""; 
+            if (url.includes("amazon.com/images/")) {
+                return url.replace(/_AC_SL\d+_/g, "_AC_SL300_");
+            }
+            return url;
+        }
+
+        // 侧边栏初始化
+        function initSidebar() {
+            const btns = document.querySelectorAll('.sidebar-btn');
+            btns.forEach(btn => {
                 btn.addEventListener('click', () => {
-                    const targetFilter = btn.dataset.filter;
-                    
-                    if (currentFilter === targetFilter) {
-                        btn.classList.remove('active');
+                    const filter = btn.dataset.filter;
+                    // 切换状态
+                    if (currentFilter === filter) {
                         currentFilter = "";
+                        btn.classList.remove('active');
                     } else {
-                        filterBtns.forEach(b => b.classList.remove('active'));
+                        currentFilter = filter;
+                        btns.forEach(b => b.classList.remove('active'));
                         btn.classList.add('active');
-                        currentFilter = targetFilter;
                     }
-                    
-                    // 重置分页重新渲染
-                    currentPage = 1;
-                    hasMore = true;
-                    document.getElementById('product-container').innerHTML = '';
-                    renderPageData(currentPage);
-                    
-                    // 核心：只要处于搜索词模式，返回按钮就显示
-                    if (isInSearchWordMode) {
-                        document.getElementById('backBtn').classList.add('show');
-                    }
+                    // 触发筛选
+                    applyFilters();
                 });
             });
         }
 
-        // Title弹窗功能
-        function initTitlePopup() {
-            let popupEl = document.createElement('div');
-            popupEl.className = 'title-popup';
-            document.body.appendChild(popupEl);
-
-            document.addEventListener('click', (e) => {
-                const titleEl = e.target.closest('.product-name');
-                if (titleEl) {
-                    const fullTitle = titleEl.dataset.title;
-                    popupEl.textContent = fullTitle;
-                    popupEl.style.display = 'block';
-                    
-                    const rect = titleEl.getBoundingClientRect();
-                    popupEl.style.top = `${rect.bottom + 5}px`;
-                    popupEl.style.left = `${rect.left}px`;
-                    
-                    if (popupEl.getBoundingClientRect().right > window.innerWidth) {
-                        popupEl.style.left = `${window.innerWidth - popupEl.offsetWidth - 10}px`;
+        // 滚动监听 (无限加载热销品)
+        function initScroll() {
+            let timer;
+            window.addEventListener('scroll', () => {
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(() => {
+                    const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+                    // 只有当Pro区域没显示，或者还没滚到底部时才触发
+                    if (scrollTop + clientHeight >= scrollHeight - 300) {
+                        const maxPage = Math.ceil(filteredBestsellers.length / PAGE_SIZE);
+                        if (currentPage < maxPage && !isLoading) {
+                            isLoading = true;
+                            currentPage++;
+                            renderBestsellers(currentPage);
+                        }
                     }
-                } else if (popupEl.style.display === 'block' && !popupEl.contains(e.target)) {
-                    popupEl.style.display = 'none';
-                }
+                }, 100);
             });
         }
 
-        // 页面初始化
-        window.addEventListener('DOMContentLoaded', async () => {
-            // 初始化时间显示
-            document.getElementById('current-time').textContent = formatTime();
-            setInterval(() => {
-                document.getElementById('current-time').textContent = formatTime();
-            }, 1000);
+        // Title 弹窗
+        const popup = document.getElementById('titlePopup');
+        window.showPopup = function(el, text) {
+            popup.textContent = text;
+            popup.style.display = 'block';
+            const rect = el.getBoundingClientRect();
+            popup.style.top = (rect.bottom + 5) + 'px';
+            popup.style.left = rect.left + 'px';
+        }
+        window.hidePopup = function() {
+            popup.style.display = 'none';
+        }
 
-            // 绑定返回按钮事件
-            document.getElementById('backBtn').addEventListener('click', handleBackClick);
-
-            // 加载数据+初始化功能
-            await loadAllData();
-            listenScroll();
-            initFilterButtons();
-            initTitlePopup();
-
-            // 自动刷新逻辑
-            setTimeout(() => {
-                const refreshInterval = setInterval(async () => {
-                    console.log("自动刷新数据...");
-                    isFirstLoad = true;
-                    totalData = [];
-                    document.getElementById('product-container').innerHTML = '';
-                    await loadAllData();
-                }, REFRESH_INTERVAL);
-                
-                window.addEventListener('beforeunload', () => clearInterval(refreshInterval));
-            }, 10000);
-        });
     </script>
 </body>
 </html>
