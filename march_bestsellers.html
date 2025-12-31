@@ -414,8 +414,10 @@
 
         // 筛选数据
         function filterData() {
+            // 【注意】如果你的Python代码没有保存 'shipping_method' 或 '配送方式' 列，这个筛选将失效
+            // 建议检查 JSON 数据中是否有 'shipping_method' 或 '配送方式' 字段
             filteredData = currentFilter 
-                ? totalData.filter(item => item.shipping_method === currentFilter)
+                ? totalData.filter(item => (item.shipping_method || item['配送方式']) === currentFilter)
                 : [...totalData];
         }
 
@@ -434,8 +436,15 @@
 
             const containerEl = document.getElementById('product-container');
             pageData.forEach(product => {
-                const imgSrc = optimizeAmazonImageUrl(product.first_image_url || "");
-                const productTitle = product.title || "未知标题";
+                // 【修改点】映射中文列名
+                const rawImg = product['图片链接'] || product.first_image_url || "";
+                const imgSrc = optimizeAmazonImageUrl(rawImg);
+                
+                const productTitle = product['商品名称'] || product.title || "未知标题";
+                const productLink = product['产品链接'] || product.url || "#";
+                const searchWord = product['搜索词'] || product['核心搜索词中文'] || "未知";
+                const date = product['上架时间'] || product.launch_date || "未知";
+                const shipping = product.shipping_method || product['配送方式'] || "";
 
                 const card = document.createElement("div");
                 card.className = "product-card";
@@ -449,14 +458,10 @@
                         loading="lazy"
                     >
                     <div class="product-name" data-title="${productTitle}">${productTitle}</div>
-                    <div class="product-meta">${product.shipping_method || ""}</div>
-                    <div class="product-meta">核心搜索词中文：${product["核心搜索词中文"] || "未知"}</div>
-                    <div class="product-meta">搜索关键词：${product.search_keyword || "未知关键词"}</div>
-                    <div class="product-meta">价格：${product.price || "0.00"}</div>
-                    <div class="product-meta">上架时间：${product.launch_date || "未知上架时间"}</div>
-                    <div class="product-meta">主分类：${product.primary_category || "未知主分类"}</div>
-                    <div class="product-meta">子分类：${product.secondary_category || "未知子分类"}</div>
-                    <a class="product-link" href="${product.url || "#"}" target="_blank" rel="noopener noreferrer">查看商品详情</a>
+                    <div class="product-meta">${shipping}</div>
+                    <div class="product-meta">核心搜索词：${searchWord}</div>
+                    <div class="product-meta">上架时间：${date}</div>
+                    <a class="product-link" href="${productLink}" target="_blank" rel="noopener noreferrer">查看商品详情</a>
                 `;
                 containerEl.appendChild(card);
             });
@@ -483,7 +488,15 @@
                 if (!response.ok) throw new Error(`HTTP错误：${response.status}`);
                 
                 const jsonData = await response.json();
-                totalData = jsonData["march_bestsellers"] || [];
+                
+                // 【修改点】因为Python用了orient='records'，jsonData直接就是数组
+                if (Array.isArray(jsonData)) {
+                    totalData = jsonData;
+                } else {
+                    // 兼容旧格式
+                    totalData = jsonData["march_bestsellers"] || [];
+                }
+                
                 filteredData = [...totalData];
                 
                 currentPage = 1;
