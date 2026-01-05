@@ -6,14 +6,17 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     padding: 0 20px;
     
-    /* ✅ 核心：让导航栏锁定在顶部 */
-    position: sticky; 
-    top: 0; 
-    z-index: 999;
+    /* ❌ 删除原来的 sticky */
+    /* position: sticky; */
     
-    /* 修复部分页面有 body padding 导致吸顶条不宽的问题 */
-    width: 100%;
-    box-sizing: border-box;
+    /* ✅ 改用 fixed (强制固定) */
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 100%; /* 必须占满全屏宽度 */
+    
+    z-index: 1000; /* 保证层级最高 */
+    box-sizing: border-box; /* 防止padding撑破宽度 */
 }
 
 .nav-container {
