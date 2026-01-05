@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CH-最强新品推荐</title>
     <style>
-        /* 导航栏样式（和主页index.html一致，保留下拉菜单样式） */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Microsoft Yahei", sans-serif;
-        }
+        /* ================= 基础样式 ================= */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft Yahei", sans-serif; }
+        body { background: #f5f5f5; padding: 20px; }
+
+        /* ================= 导航栏样式 (适配 common-nav.js) ================= */
         .nav-header {
             background: #fff;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -19,95 +17,65 @@
             position: sticky;
             top: 0;
             z-index: 999;
+            /* 修正：body有padding，导航栏需要负边距或width:100%来贴边，这里简单处理 */
+            margin: -20px -20px 20px -20px; 
         }
         .nav-container {
-            max-width: 1200px;
+            max-width: 1400px; /* 统一宽度 */
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
             height: 60px;
         }
-        .logo {
-            font-size: 18px;
-            font-weight: bold;
-            color: #1677ff;
-            text-decoration: none;
-        }
-        /* 导航栏菜单 + 下拉样式 */
-        .nav-menu {
-            display: flex;
-            list-style: none;
-            gap: 30px;
-            position: relative;
-        }
-        .nav-menu li {
-            position: relative;
-        }
-        .nav-menu li a {
-            text-decoration: none;
-            color: #333;
-            font-size: 14px;
+        .logo { font-size: 18px; font-weight: bold; color: #1677ff; text-decoration: none; }
+        
+        .nav-menu { display: flex; list-style: none; gap: 30px; align-items: center; }
+        .nav-menu li { position: relative; }
+        
+        .nav-menu a {
+            text-decoration: none; color: #333; font-size: 14px; 
             transition: color 0.2s;
-            display: inline-block;
         }
-        .nav-menu li a:hover {
-            color: #1677ff;
-        }
-        .nav-menu li a.active {
-            color: #1677ff;
-            font-weight: bold;
-        }
-        /* 月份下拉容器样式 */
-        .dropdown-container {
-            cursor: pointer;
-        }
-        .dropdown-arrow {
-            font-size: 10px;
-            margin-left: 4px;
-            transition: transform 0.2s;
-        }
-        .dropdown-list {
+        .nav-menu a:hover, .nav-menu a.active { color: #1677ff; font-weight: bold; }
+
+        /* 下拉菜单样式 (CSS悬停) */
+        .dropdown-content {
+            display: none;
             position: absolute;
+            background-color: #fff;
+            min-width: 120px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            z-index: 1000;
             top: 100%;
             left: 0;
-            background: #fff;
             border-radius: 4px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            list-style: none;
-            padding: 10px 0;
-            min-width: 150px;
-            display: none;
-            z-index: 1000;
+            padding: 5px 0;
+            text-align: left;
         }
-        .dropdown-list.show {
+        .dropdown-content a {
+            padding: 10px 16px;
             display: block;
-        }
-        .dropdown-list li {
-            padding: 0;
-        }
-        .dropdown-list li a {
-            display: block;
-            padding: 8px 16px;
             color: #333;
+            font-weight: normal;
         }
-        .dropdown-list li a:hover {
-            background: #f5f5f5;
+        .dropdown-content a:hover {
+            background-color: #f5f5f5;
             color: #1677ff;
         }
-        .mobile-menu-btn {
-            display: none;
-            font-size: 20px;
-            cursor: pointer;
-            color: #333;
+        .dropdown:hover .dropdown-content {
+            display: block;
         }
-        /* 原有新品页面样式 */
-        body {
-            background: #f5f5f5;
-            padding: 20px;
+
+        /* ================= 页面样式 ================= */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+            margin-top: 20px;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1400px; /* 统一宽度 */
             margin: 20px auto 0;
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -119,6 +87,7 @@
             padding: 15px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             transition: transform 0.2s;
+            display: flex; flex-direction: column;
         }
         .product-card:hover {
             transform: translateY(-5px);
@@ -133,18 +102,11 @@
             opacity: 0;
             transition: opacity 0.3s ease-in-out;
         }
-        .product-img.loaded {
-            opacity: 1;
-        }
+        .product-img.loaded { opacity: 1; }
         .product-img.error {
             background: #eee;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #999;
-            font-size: 12px;
-            opacity: 1;
-            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: #999; font-size: 12px; cursor: pointer;
         }
         .product-name {
             font-size: 14px;
@@ -164,9 +126,10 @@
             margin-bottom: 5px;
         }
         .product-link {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 6px 12px;
+            display: block; /* 改为block撑满宽度或居中 */
+            text-align: center;
+            margin-top: auto; /* 底部对齐 */
+            padding: 8px 12px;
             background: #1677ff;
             color: white;
             text-decoration: none;
@@ -176,202 +139,84 @@
         .product-link:hover {
             background: #0958d9;
         }
-        .header {
+        
+        .loading, .refresh-tip {
             text-align: center;
-            margin-bottom: 30px; /* 恢复原间距 */
-            color: #333;
-            margin-top: 20px;
-        }
-        .loading {
-            text-align: center;
-            font-size: 18px;
-            color: #666;
-            padding: 50px 0;
-        }
-        .refresh-tip {
-            text-align: center;
-            font-size: 12px;
             color: #999;
-            margin-top: 20px;
-        }
-        /* 移动端适配 */
-        @media (max-width: 768px) {
-            .nav-menu {
-                display: none;
-                position: absolute;
-                top: 60px;
-                left: 0;
-                right: 0;
-                background: #fff;
-                flex-direction: column;
-                padding: 20px;
-                gap: 20px;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            }
-            .nav-menu.show {
-                display: flex;
-            }
-            .dropdown-list {
-                position: static;
-                box-shadow: none;
-                padding: 5px 0 5px 20px;
-            }
-            .mobile-menu-btn {
-                display: block;
-            }
-            .container {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
+            padding: 20px;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
-    <!-- 导航栏（保留同期热销品下拉菜单） -->
-    <header class="nav-header">
-        <div class="nav-container">
-            <a href="index.html" class="logo">CH-商品推荐</a>
-            <div class="mobile-menu-btn" id="mobileMenuBtn">☰</div>
-            <ul class="nav-menu" id="navMenu">
-                <li><a href="index.html">首页</a></li>
-                <li><a href="new_pro.html" class="active">最强新品推荐（潜力爆款）</a></li>
-                <!-- 保留右上角同期热销品下拉菜单 -->
-                <li class="dropdown-container" id="navDropdown">
-                    <a href="javascript:;">同期热销品 <span class="dropdown-arrow">▼</span></a>
-                    <ul class="dropdown-list" id="navDropdownList">
-                        <li><a href="march_bestsellers.html">同期3月</a></li>
-                    </ul>
-                </li>
-                <li><a href="#">其他分类1（可扩展）</a></li>
-                <li><a href="#">其他分类2（可扩展）</a></li>
-            </ul>
-        </div>
-    </header>
+    
+    <!-- ✅ 1. 导航栏占位符 -->
+    <div id="nav-placeholder"></div>
 
-    <!-- 新品页面核心内容（删除中间的“查看同期热销品”按钮） -->
+    <!-- 页面内容 -->
     <h1 class="header">CH-最强新品推荐（潜力爆款）</h1>
-    <!-- 以下是被删除的中间按钮代码：
-    <div class="btn-group">
-        <div class="dropdown-btn-wrapper" id="homeDropdown">
-            <button class="btn-go-products">查看同期热销品</button>
-            <ul class="home-dropdown-list" id="homeDropdownList">
-                <li><a href="march_bestsellers.html">同期3月</a></li>
-            </ul>
-        </div>
-    </div>
-    -->
+    
     <div class="loading" id="loading">加载中...</div>
     <div class="container" id="product-container"></div>
     <div class="refresh-tip" id="refresh-tip">数据自动刷新，当前时间：<span id="current-time"></span></div>
 
+    <!-- ✅ 2. 引入公共导航脚本 -->
+    <script src="common-nav.js"></script>
+
     <script>
-        // 移动端菜单逻辑
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const navMenu = document.getElementById('navMenu');
-        mobileMenuBtn.addEventListener('click', () => {
-            navMenu.classList.toggle('show');
-            mobileMenuBtn.textContent = navMenu.classList.contains('show') ? '←' : '☰';
-        });
-
-        // 导航栏下拉菜单逻辑（保留）
-        const navDropdown = document.getElementById('navDropdown');
-        const navDropdownList = document.getElementById('navDropdownList');
-        const dropdownArrow = navDropdown.querySelector('.dropdown-arrow');
-
-        navDropdown.addEventListener('click', (e) => {
-            e.stopPropagation();
-            navDropdownList.classList.toggle('show');
-            dropdownArrow.style.transform = navDropdownList.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0)';
-        });
-
-        // 删除页面中间按钮对应的脚本逻辑（原homeDropdown相关代码）
-        document.addEventListener('click', () => {
-            navDropdownList.classList.remove('show');
-            dropdownArrow.style.transform = 'rotate(0)';
-        });
-
-        // 核心配置
-        const JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/new_pro.json";
+        // ================= 配置区域 =================
+        // 建议统一使用 R2 链接，速度更快。如果还没上传 new_pro.json 到 R2，请改回 GitHub 链接
+        const JSON_URL = "https://img.hohopick.top/new_pro.json";
+        // const JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/new_pro.json";
+        
         const REFRESH_INTERVAL = 5 * 60 * 1000;
 
-        // 格式化时间工具函数
         function formatTime() {
             const now = new Date();
             return now.toLocaleString("zh-CN", {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
             });
         }
         
-        // 重写initLazyLoad函数，添加预加载逻辑
+        // 懒加载逻辑
         function initLazyLoad() {
             const allImgElements = Array.from(document.querySelectorAll('.product-img'));
-            let loadedCount = 0; // 已加载完成的图片数量
-            const preloadCount = 5; // 预加载后面的5张图片（可根据需求调整）
+            let loadedCount = 0; 
+            const preloadCount = 5; 
 
-            // 1. 基础懒加载逻辑（保留原有）
             const loadSingleImg = (img) => {
                 if (img.classList.contains('loaded') || img.classList.contains('error')) return;
                 
                 const realSrc = img.dataset.src;
-                const reloadImage = () => {
-                    img.classList.remove('error');
-                    img.alt = '图片重新加载中...';
-                    const newImg = new Image();
-                    newImg.src = realSrc + '?t=' + new Date().getTime();
-                    newImg.onload = () => {
-                        img.src = realSrc;
-                        img.classList.add('loaded');
-                        img.alt = img.dataset.alt || '商品图片';
-                        loadedCount++; // 加载完成，计数+1
-                        checkPreload(); // 检查是否需要预加载后面的图片
-                    };
-                    newImg.onerror = () => {
-                        img.classList.add('error');
-                        img.alt = '点击重新加载';
-                        loadedCount++; // 即使失败，也计入已处理
-                        checkPreload();
-                    };
-                };
-
                 img.src = realSrc;
+                
                 img.onload = () => {
                     img.classList.add('loaded');
                     observer.unobserve(img);
-                    loadedCount++;
                     checkPreload();
                 };
                 img.onerror = () => {
                     img.classList.add('error');
-                    img.alt = '点击重新加载';
+                    img.alt = '点击重试';
                     observer.unobserve(img);
-                    img.addEventListener('click', reloadImage);
-                    loadedCount++;
+                    img.onclick = () => { img.src = realSrc + '?t=' + Date.now(); };
                     checkPreload();
                 };
             };
 
-            // 2. 预加载逻辑：加载完当前可见的，主动加载后面的N张
             const checkPreload = () => {
-                // 找到第一个未加载的图片的索引
                 const firstUnloadedIndex = allImgElements.findIndex(img => 
                     !img.classList.contains('loaded') && !img.classList.contains('error')
                 );
-                // 如果有未加载的，且已加载数达标，预加载后面的preloadCount张
                 if (firstUnloadedIndex !== -1) {
                     const preloadEndIndex = Math.min(firstUnloadedIndex + preloadCount, allImgElements.length);
-                    // 遍历要预加载的图片，主动加载
                     for (let i = firstUnloadedIndex; i < preloadEndIndex; i++) {
                         loadSingleImg(allImgElements[i]);
                     }
                 }
             };
 
-            // 3. 原有IntersectionObserver逻辑（触发懒加载）
             if (!('IntersectionObserver' in window)) {
                 allImgElements.forEach(img => loadSingleImg(img));
                 return;
@@ -381,23 +226,15 @@
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         loadSingleImg(entry.target);
-                        observer.unobserve(entry.target);
                     }
                 });
-            }, {
-                rootMargin: '100px 0px',
-                threshold: 0.1
-            });
+            }, { rootMargin: '100px 0px', threshold: 0.1 });
 
-            allImgElements.forEach(img => {
-                observer.observe(img);
-            });
-
-            // 初始化时先加载视口内的，然后触发预加载
+            allImgElements.forEach(img => observer.observe(img));
             setTimeout(checkPreload, 500);
         }
 
-        // 渲染商品列表核心函数
+        // 渲染商品
         async function renderProducts() {
             const loadingEl = document.getElementById("loading");
             const containerEl = document.getElementById("product-container");
@@ -409,19 +246,28 @@
                 const response = await fetch(JSON_URL, { cache: "no-cache" });
                 if (!response.ok) throw new Error(`HTTP错误：${response.status}`);
                 
-                const products = await response.json();
+                // 兼容逻辑：处理数组或对象格式
+                let products = await response.json();
+                if (!Array.isArray(products) && products['new_pro']) {
+                    products = products['new_pro'];
+                } else if (!Array.isArray(products)) {
+                    // 如果既不是数组也没有 new_pro 字段，强制转空数组防报错
+                    products = []; 
+                }
+
                 containerEl.innerHTML = "";
 
                 if (products.length === 0) {
-                    containerEl.innerHTML = '<div style="text-align:center; width:100%; color:#666; padding: 50px 0;">暂无商品数据</div>';
+                    containerEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#999;padding:50px;">暂无商品数据</div>';
                     return;
                 }
 
                 products.forEach(product => {
-                    const imgSrc = product.图片链接 || "";
-                    const productName = product.商品名称 || "未知商品";
-                    const publishTime = product.上架时间 || "未知";
-                    const productLink = product.产品链接 || "#";
+                    // 兼容中英文 Key
+                    const imgSrc = product.图片链接 || product.image || "";
+                    const productName = product.商品名称 || product.title || "未知商品";
+                    const publishTime = product.上架时间 || product.date || "未知";
+                    const productLink = product.产品链接 || product.url || "#";
 
                     const card = document.createElement("div");
                     card.className = "product-card";
@@ -431,9 +277,8 @@
                             data-src="${imgSrc}"
                             src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                             alt="${productName}"
-                            data-alt="${productName}"
                         >
-                        <div class="product-name">${productName}</div>
+                        <div class="product-name" title="${productName}">${productName}</div>
                         <div class="product-meta">上架时间：${publishTime}</div>
                         <a class="product-link" href="${productLink}" target="_blank" rel="noopener noreferrer">查看商品</a>
                     `;
@@ -450,7 +295,7 @@
             }
         }
 
-        // 页面加载时执行
+        // 页面加载
         window.onload = async function() {
             await renderProducts();
             setInterval(async () => {
@@ -458,14 +303,6 @@
                 await renderProducts();
             }, REFRESH_INTERVAL);
         };
-
-        // 监听窗口大小变化
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 768 && navMenu.classList.contains('show')) {
-                navMenu.classList.remove('show');
-                mobileMenuBtn.textContent = '☰';
-            }
-        });
     </script>
 </body>
 </html>
