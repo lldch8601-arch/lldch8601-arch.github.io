@@ -1,18 +1,110 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+<head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CH-商品推荐主页</title>
-    <!-- ✅ 引入公共样式 -->
+    
+    <!-- ✅ 1. 引入公共样式 (解决顶部导航栏样式) -->
     <link rel="stylesheet" href="common.css"> 
+    
     <style>
-        /* 这里只保留 index.html 特有的样式，比如 .home-container, .btn-group 等 */
-        body { background: #f5f5f5; min-height: 100vh; margin: 0; } 
-        /* ... 其他非导航栏样式 ... */
+        /* ================= 页面基础 ================= */
+        body { background: #f5f5f5; min-height: 100vh; margin: 0; }
+
+        /* 
+           ❌ 警告：你之前删掉了下面这些样式！
+           ✅ 必须加回来，否则主页中间的内容会乱掉 
+        */
+
+        /* ================= 首页独有内容样式 ================= */
+        .home-container {
+            max-width: 1200px;
+            margin: 80px auto;
+            padding: 0 20px;
+            text-align: center;
+        }
+        .home-title {
+            font-size: 32px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .home-desc {
+            font-size: 16px;
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 50px;
+        }
+        
+        /* 按钮组容器 */
+        .btn-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        /* 大按钮样式 */
+        .btn-go-products {
+            display: inline-block;
+            padding: 12px 35px;
+            background: #1677ff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: background 0.2s;
+            border: none;
+            cursor: pointer;
+            font-family: "Microsoft Yahei", sans-serif;
+        }
+        .btn-go-products:hover {
+            background: #0958d9;
+        }
+
+        /* ================= 中间下拉按钮的特殊样式 ================= */
+        /* 注意：这里复用了 common.css 里的 .dropdown-content 类，但定位不同 */
+        
+        .home-dropdown-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* 给中间按钮也加上“隐形桥”，防止鼠标滑过缝隙时菜单消失 */
+        .home-dropdown-wrapper::after {
+            content: '';
+            position: absolute;
+            bottom: -20px; 
+            left: 0;
+            width: 100%;
+            height: 20px; 
+            background: transparent;
+        }
+
+        /* 定位中间的下拉框 */
+        .home-dropdown-wrapper .dropdown-content {
+            left: 50%;
+            transform: translateX(-50%); /* 居中对齐 */
+            min-width: 160px;
+            margin-top: 10px;
+        }
+        
+        /* 悬停显示 */
+        .home-dropdown-wrapper:hover .dropdown-content {
+            display: block;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .home-title { font-size: 24px; }
+            .btn-group { flex-direction: column; align-items: center; }
+            .btn-go-products { width: 80%; }
+        }
     </style>
 </head>
 <body>
 
-    <!-- ✅ 1. 导航栏占位符 (common-nav.js 会自动填充这里) -->
+    <!-- ✅ 2. 导航栏占位符 (JS 自动填充) -->
     <div id="nav-placeholder"></div>
 
     <!-- 页面核心内容 -->
@@ -26,20 +118,19 @@
         <div class="btn-group">
             <a href="new_pro.html" class="btn-go-products">查看最强新品推荐</a>
             
-            <!-- ✅ 中间的下拉按钮 (现在也改成了纯CSS悬停，无需JS) -->
+            <!-- 中间的下拉按钮 -->
             <div class="home-dropdown-wrapper">
                 <button class="btn-go-products">查看同期热销品 ▼</button>
                 <div class="dropdown-content">
                     <a href="march_bestsellers.html">同期3月</a>
-                    <!-- 未来直接加一行 <a href="april...">同期4月</a> -->
+                    <!-- 未来加: <a href="#">同期4月</a> -->
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- ✅ 2. 引入公共导航脚本 -->
+    <!-- ✅ 3. 引入公共导航脚本 -->
     <script src="common-nav.js"></script>
 
-    <!-- 现在的 index.html 不需要任何额外的 JS 代码了，非常干净！ -->
 </body>
 </html>
