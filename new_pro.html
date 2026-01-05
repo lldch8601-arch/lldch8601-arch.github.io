@@ -2,22 +2,123 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CH-最强新品推荐</title>
-    <!-- ✅ 引入公共样式 -->
+    
+    <!-- ✅ 1. 引入公共样式 (解决导航栏) -->
     <link rel="stylesheet" href="common.css">
+    
     <style>
-        /* 这里只保留 new_pro.html 特有的样式，比如 .product-card 等 */
-        body { background: #f5f5f5; padding: 20px; }
+        /* ================= 页面基础 ================= */
+        body { 
+            background: #f5f5f5; 
+            padding: 20px; /* 保持原有的内边距 */
+        }
         
-        /* 修正 sticky 在有 padding 的 body 下的表现 */
-        .nav-header { margin: -20px -20px 20px -20px; }
+        /* 修正 sticky 在有 padding 的 body 下的表现，让导航栏贴边 */
+        .nav-header { margin: -20px -20px 20px -20px; width: calc(100% + 40px); }
+
+        /* 
+           ✅ 下面是被你误删的样式，必须加回来 
+           否则商品列表会乱套 
+        */
+
+        /* ================= 页面独有样式 ================= */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+            margin-top: 20px;
+        }
+
+        /* 商品网格布局 */
+        .container {
+            max-width: 1400px;
+            margin: 20px auto 0;
+            display: grid;
+            /* 自动适应宽度，最小280px */
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        /* 商品卡片 */
+        .product-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            display: flex;
+            flex-direction: column; /* 让按钮底部对齐 */
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* 图片样式 */
+        .product-img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background: #f0f0f0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .product-img.loaded { opacity: 1; }
+        .product-img.error {
+            background: #eee;
+            display: flex; align-items: center; justify-content: center;
+            color: #999; font-size: 12px; cursor: pointer;
+        }
+
+        /* 文本样式 */
+        .product-name {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.4;
+            margin-bottom: 8px;
+            height: 42px; /* 限制两行高度 */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .product-meta {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        /* 按钮样式 */
+        .product-link {
+            display: block;
+            text-align: center;
+            margin-top: auto; /* 自动推到底部 */
+            padding: 8px 12px;
+            background: #1677ff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .product-link:hover {
+            background: #0958d9;
+        }
         
-        /* ... 其他非导航栏样式 ... */
+        /* 加载提示 */
+        .loading, .refresh-tip {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
     
-    <!-- ✅ 1. 导航栏占位符 -->
+    <!-- ✅ 2. 导航栏占位符 -->
     <div id="nav-placeholder"></div>
 
     <!-- 页面内容 -->
@@ -27,14 +128,13 @@
     <div class="container" id="product-container"></div>
     <div class="refresh-tip" id="refresh-tip">数据自动刷新，当前时间：<span id="current-time"></span></div>
 
-    <!-- ✅ 2. 引入公共导航脚本 -->
+    <!-- ✅ 3. 引入公共导航脚本 -->
     <script src="common-nav.js"></script>
 
     <script>
         // ================= 配置区域 =================
-        // 建议统一使用 R2 链接，速度更快。如果还没上传 new_pro.json 到 R2，请改回 GitHub 链接
+        // 使用 R2 链接 (如果还没上传 new_pro.json，请临时改回 raw.githubusercontent...)
         const JSON_URL = "https://img.hohopick.top/new_pro.json";
-        // const JSON_URL = "https://raw.githubusercontent.com/lldch8601-arch/lldch8601-arch.github.io/refs/heads/main/new_pro.json";
         
         const REFRESH_INTERVAL = 5 * 60 * 1000;
 
