@@ -11,12 +11,12 @@
     <style>
         /* ================= 页面基础 ================= */
         body { 
-            background: #f5f5f5; 
-            padding: 20px; /* 保持原有的内边距 */
+              background: #f5f5f5; 
+            
+            /* ✅ 修改这里：顶部 padding 改为 80px */
+            /* 原理：60px(导航栏高度) + 20px(原本的间距) = 80px */
+            padding: 80px 20px 20px 20px; 
         }
-        
-        /* 修正 sticky 在有 padding 的 body 下的表现，让导航栏贴边 */
-        .nav-header { margin: -20px -20px 20px -20px; width: calc(100% + 40px); }
 
         /* 
            ✅ 下面是被你误删的样式，必须加回来 
