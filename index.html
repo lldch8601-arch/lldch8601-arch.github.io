@@ -5,18 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CH-商品推荐主页</title>
     <style>
-        /* 重置样式 */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Microsoft Yahei", sans-serif;
-        }
-        body {
-            background: #f5f5f5;
-            min-height: 100vh;
-        }
-        /* 导航栏样式 */
+        /* ================= 基础样式 ================= */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft Yahei", sans-serif; }
+        body { background: #f5f5f5; min-height: 100vh; }
+
+        /* ================= 导航栏样式 (适配 common-nav.js) ================= */
+        /* 注意：虽然 HTML 是 JS 插入的，但样式必须在这里（或公共CSS文件）定义 */
         .nav-header {
             background: #fff;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -26,124 +20,88 @@
             z-index: 999;
         }
         .nav-container {
-            max-width: 1200px;
+            max-width: 1400px; /* 统一宽度 */
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
             height: 60px;
         }
-        .logo {
-            font-size: 18px;
-            font-weight: bold;
-            color: #1677ff;
-            text-decoration: none;
-        }
-        /* 桌面端菜单 + 下拉样式 */
-        .nav-menu {
-            display: flex;
-            list-style: none;
-            gap: 30px;
-            position: relative;
-        }
-        .nav-menu li {
-            position: relative;
-        }
-        .nav-menu li a {
-            text-decoration: none;
-            color: #333;
-            font-size: 14px;
+        .logo { font-size: 18px; font-weight: bold; color: #1677ff; text-decoration: none; }
+        
+        .nav-menu { display: flex; list-style: none; gap: 30px; align-items: center; }
+        .nav-menu li { position: relative; }
+        
+        .nav-menu a {
+            text-decoration: none; color: #333; font-size: 14px; 
             transition: color 0.2s;
-            display: inline-block;
         }
-        .nav-menu li a:hover {
-            color: #1677ff;
-        }
-        .nav-menu li a.active {
-            color: #1677ff;
-            font-weight: bold;
-        }
-        /* 月份下拉容器样式 */
-        .dropdown-container {
-            cursor: pointer;
-        }
-        .dropdown-arrow {
-            font-size: 10px;
-            margin-left: 4px;
-            transition: transform 0.2s;
-        }
-        .dropdown-list {
+        .nav-menu a:hover, .nav-menu a.active { color: #1677ff; font-weight: bold; }
+
+        /* 通用下拉菜单样式 (CSS实现悬停显示) */
+        .dropdown-content {
+            display: none;
             position: absolute;
+            background-color: #fff;
+            min-width: 120px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            z-index: 1000;
             top: 100%;
             left: 0;
-            background: #fff;
             border-radius: 4px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            list-style: none;
-            padding: 10px 0;
-            min-width: 150px;
-            display: none;
-            z-index: 1000;
+            padding: 5px 0;
+            text-align: left;
         }
-        .dropdown-list.show {
+        .dropdown-content a {
+            padding: 10px 16px;
             display: block;
-        }
-        .dropdown-list li {
-            padding: 0;
-        }
-        .dropdown-list li a {
-            display: block;
-            padding: 8px 16px;
             color: #333;
+            font-weight: normal;
         }
-        .dropdown-list li a:hover {
-            background: #f5f5f5;
+        .dropdown-content a:hover {
+            background-color: #f5f5f5;
             color: #1677ff;
         }
-        /* 移动端菜单按钮 */
-        .mobile-menu-btn {
-            display: none;
-            font-size: 20px;
-            cursor: pointer;
-            color: #333;
+        /* 鼠标悬停显示下拉 */
+        .dropdown:hover .dropdown-content {
+            display: block;
         }
-        /* 主页内容区 */
+
+        /* ================= 首页独有内容样式 ================= */
         .home-container {
             max-width: 1200px;
-            margin: 50px auto;
+            margin: 80px auto;
             padding: 0 20px;
             text-align: center;
         }
         .home-title {
-            font-size: 28px;
+            font-size: 32px;
             color: #333;
             margin-bottom: 20px;
         }
         .home-desc {
             font-size: 16px;
             color: #666;
-            line-height: 1.6;
-            margin-bottom: 40px;
+            line-height: 1.8;
+            margin-bottom: 50px;
         }
-        /* 按钮组样式 */
+        
+        /* 按钮组 */
         .btn-group {
             display: flex;
             gap: 20px;
             justify-content: center;
             flex-wrap: wrap;
         }
-        /* 主页下拉按钮样式 */
-        .dropdown-btn-wrapper {
-            position: relative;
-            display: inline-block;
-        }
+        
+        /* 大按钮通用样式 */
         .btn-go-products {
             display: inline-block;
-            padding: 10px 30px;
+            padding: 12px 35px;
             background: #1677ff;
             color: #fff;
             text-decoration: none;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 16px;
             transition: background 0.2s;
             border: none;
@@ -153,163 +111,63 @@
         .btn-go-products:hover {
             background: #0958d9;
         }
-        .home-dropdown-list {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: #fff;
-            border-radius: 4px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            list-style: none;
-            padding: 10px 0;
-            display: none;
-            z-index: 999;
+
+        /* 首页中间的下拉按钮特殊处理 */
+        .home-dropdown-wrapper {
+            position: relative;
+            display: inline-block;
         }
-        .home-dropdown-list.show {
+        /* 复用 .dropdown-content 样式，但居中对齐 */
+        .home-dropdown-wrapper .dropdown-content {
+            left: 50%;
+            transform: translateX(-50%);
+            min-width: 160px;
+            margin-top: 10px;
+        }
+        /* 让中间按钮也支持悬停显示 */
+        .home-dropdown-wrapper:hover .dropdown-content {
             display: block;
         }
-        .home-dropdown-list li a {
-            display: block;
-            padding: 8px 16px;
-            color: #333;
-            text-decoration: none;
-            font-size: 14px;
-        }
-        .home-dropdown-list li a:hover {
-            background: #f5f5f5;
-            color: #1677ff;
-        }
+
         /* 响应式适配 */
         @media (max-width: 768px) {
-            .nav-menu {
-                display: none;
-                position: absolute;
-                top: 60px;
-                left: 0;
-                right: 0;
-                background: #fff;
-                flex-direction: column;
-                padding: 20px;
-                gap: 20px;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            }
-            .nav-menu.show {
-                display: flex;
-            }
-            .dropdown-list {
-                position: static;
-                box-shadow: none;
-                padding: 5px 0 5px 20px;
-            }
-            .mobile-menu-btn {
-                display: block;
-            }
-            .home-title {
-                font-size: 24px;
-            }
-            .btn-group {
-                flex-direction: column;
-                align-items: center;
-            }
-            .btn-go-products {
-                width: 80%;
-            }
+            .nav-menu { display: none; /* 移动端暂不显示复杂菜单，避免冲突 */ }
+            .home-title { font-size: 24px; }
+            .btn-group { flex-direction: column; align-items: center; }
+            .btn-go-products { width: 80%; }
         }
     </style>
 </head>
 <body>
-    <!-- 导航栏 -->
-    <header class="nav-header">
-        <div class="nav-container">
-            <a href="index.html" class="logo">CH-商品推荐</a>
-            <div class="mobile-menu-btn" id="mobileMenuBtn">☰</div>
-            <!-- 导航菜单：同期热销品下拉 -->
-            <ul class="nav-menu" id="navMenu">
-                <li><a href="index.html" class="active">首页</a></li>
-                <li><a href="new_pro.html">最强新品推荐（潜力爆款）</a></li>
-                <li class="dropdown-container" id="navDropdown">
-                    <a href="javascript:;">同期热销品 <span class="dropdown-arrow">▼</span></a>
-                    <ul class="dropdown-list" id="navDropdownList">
-                        <!-- 修改：2025年3月 → 同期3月 -->
-                        <li><a href="march_bestsellers.html">同期3月</a></li>
-                        <!-- 后续扩展示例：
-                        <li><a href="april_bestsellers.html">同期4月</a></li>
-                        <li><a href="may_bestsellers.html">同期5月</a></li> -->
-                    </ul>
-                </li>
-                <li><a href="#">其他分类1（可扩展）</a></li>
-                <li><a href="#">其他分类2（可扩展）</a></li>
-            </ul>
-        </div>
-    </header>
 
-    <!-- 主页内容 -->
+    <!-- ✅ 1. 导航栏占位符 (common-nav.js 会自动填充这里) -->
+    <div id="nav-placeholder"></div>
+
+    <!-- 页面核心内容 -->
     <main class="home-container">
-        <h1 class="home-title">欢迎来到CH-商品推荐平台</h1>
+        <h1 class="home-title">欢迎来到 CH-商品推荐平台</h1>
         <p class="home-desc">
             专注于挖掘潜力爆款新品，为您推荐高性价比、高销量的优质商品。<br>
             点击下方按钮或导航菜单，查看最新的商品推荐列表。
         </p>
+        
         <div class="btn-group">
             <a href="new_pro.html" class="btn-go-products">查看最强新品推荐</a>
-            <div class="dropdown-btn-wrapper" id="homeDropdown">
-                <button class="btn-go-products">查看同期热销品</button>
-                <ul class="home-dropdown-list" id="homeDropdownList">
-                    <!-- 修改：2025年3月 → 同期3月 -->
-                    <li><a href="march_bestsellers.html">同期3月</a></li>
-                    <!-- 后续扩展示例：
-                    <li><a href="april_bestsellers.html">同期4月</a></li>
-                    <li><a href="may_bestsellers.html">同期5月</a></li> -->
-                </ul>
+            
+            <!-- ✅ 中间的下拉按钮 (现在也改成了纯CSS悬停，无需JS) -->
+            <div class="home-dropdown-wrapper">
+                <button class="btn-go-products">查看同期热销品 ▼</button>
+                <div class="dropdown-content">
+                    <a href="march_bestsellers.html">同期3月</a>
+                    <!-- 未来直接加一行 <a href="april...">同期4月</a> -->
+                </div>
             </div>
         </div>
     </main>
 
-    <script>
-        // 移动端菜单逻辑
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const navMenu = document.getElementById('navMenu');
-        
-        mobileMenuBtn.addEventListener('click', () => {
-            navMenu.classList.toggle('show');
-            mobileMenuBtn.textContent = navMenu.classList.contains('show') ? '←' : '☰';
-        });
+    <!-- ✅ 2. 引入公共导航脚本 -->
+    <script src="common-nav.js"></script>
 
-        // 导航栏下拉菜单逻辑
-        const navDropdown = document.getElementById('navDropdown');
-        const navDropdownList = document.getElementById('navDropdownList');
-        const dropdownArrow = navDropdown.querySelector('.dropdown-arrow');
-
-        navDropdown.addEventListener('click', (e) => {
-            e.stopPropagation();
-            navDropdownList.classList.toggle('show');
-            dropdownArrow.style.transform = navDropdownList.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0)';
-        });
-
-        // 主页下拉按钮逻辑
-        const homeDropdown = document.getElementById('homeDropdown');
-        const homeDropdownList = document.getElementById('homeDropdownList');
-
-        homeDropdown.addEventListener('click', (e) => {
-            e.stopPropagation();
-            homeDropdownList.classList.toggle('show');
-        });
-
-        // 点击空白处关闭下拉
-        document.addEventListener('click', () => {
-            navDropdownList.classList.remove('show');
-            dropdownArrow.style.transform = 'rotate(0)';
-            homeDropdownList.classList.remove('show');
-        });
-
-        // 窗口大小变化重置菜单
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 768 && navMenu.classList.contains('show')) {
-                navMenu.classList.remove('show');
-                mobileMenuBtn.textContent = '☰';
-            }
-        });
-    </script>
+    <!-- 现在的 index.html 不需要任何额外的 JS 代码了，非常干净！ -->
 </body>
 </html>
