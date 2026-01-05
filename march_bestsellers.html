@@ -9,7 +9,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft Yahei", sans-serif; }
         body { background: #f5f5f5; padding-bottom: 50px; }
         
-        /* ================= 导航栏 (还原下拉菜单样式) ================= */
+        /* ================= 导航栏样式 (适配 common-nav.js) ================= */
         .nav-header {
             background: #fff;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -28,16 +28,16 @@
         }
         .logo { font-size: 18px; font-weight: bold; color: #1677ff; text-decoration: none; }
         
-        .nav-menu { display: flex; list-style: none; gap: 10px; align-items: center; }
-        .nav-menu li { position: relative; } /* 为下拉菜单定位 */
+        .nav-menu { display: flex; list-style: none; gap: 30px; align-items: center; }
+        .nav-menu li { position: relative; }
         
         .nav-menu a {
             text-decoration: none; color: #333; font-size: 14px; 
-            padding: 10px 15px; display: block; transition: color 0.2s;
+            transition: color 0.2s;
         }
         .nav-menu a:hover, .nav-menu a.active { color: #1677ff; font-weight: bold; }
 
-        /* 下拉菜单样式 */
+        /* 通用下拉菜单样式 */
         .dropdown-content {
             display: none;
             position: absolute;
@@ -48,11 +48,14 @@
             top: 100%;
             left: 0;
             border-radius: 4px;
+            padding: 5px 0;
+            text-align: left;
         }
         .dropdown-content a {
-            padding: 12px 16px;
-            font-weight: normal;
+            padding: 10px 16px;
+            display: block;
             color: #333;
+            font-weight: normal;
         }
         .dropdown-content a:hover {
             background-color: #f5f5f5;
@@ -128,16 +131,11 @@
             font-weight: 500;
         }
         
-        /* 这里的 space-between 是为了价格和FBA标签两端对齐 */
         .product-meta { font-size: 12px; color: #666; margin-bottom: 4px; display: flex; justify-content: space-between; }
         
-        /* 新增：专门用于核心词的样式，强制靠左对齐，解决距离太远的问题 */
         .product-meta-start {
             font-size: 12px; color: #666; margin-bottom: 4px; 
-            display: flex; 
-            justify-content: flex-start; /* 靠左对齐 */
-            gap: 5px; /* 间距 */
-            align-items: center;
+            display: flex; justify-content: flex-start; gap: 5px; align-items: center;
         }
 
         .clickable-term {
@@ -168,7 +166,38 @@
         .pro-link { background: #fff7e6; color: #d46b08; }
         .pro-link:hover { background: #d46b08; color: white; }
 
-        .loading, .load-more { text-align: center; color: #999; padding: 20px; font-size: 14px; }
+        /* ================= 加载更多按钮 ================= */
+        .loading { text-align: center; color: #999; padding: 20px; font-size: 14px; }
+        
+        .load-more-btn {
+            display: block;
+            margin: 30px auto;
+            padding: 12px 40px;
+            background-color: #fff;
+            border: 1px solid #d9d9d9;
+            border-radius: 30px;
+            color: #666;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            width: fit-content;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .load-more-btn:hover {
+            color: #1677ff;
+            border-color: #1677ff;
+            background-color: #f0f5ff;
+        }
+        .load-more-btn.disabled {
+            background-color: transparent;
+            border-color: transparent;
+            box-shadow: none;
+            color: #ccc;
+            cursor: default;
+            pointer-events: none;
+        }
+
         .title-popup {
             position: fixed; background: rgba(0,0,0,0.8); color: white;
             padding: 8px 12px; border-radius: 4px; font-size: 12px; z-index: 1000;
@@ -179,29 +208,10 @@
 </head>
 <body>
 
-    <!-- 还原后的导航栏 -->
-    <header class="nav-header">
-        <div class="nav-container">
-            <a href="index.html" class="logo">CH-商品推荐</a>
-            <ul class="nav-menu">
-                <li><a href="index.html">首页</a></li>
-                <li><a href="new_pro.html">最强新品推荐（潜力爆款）</a></li>
-                
-                <!-- 下拉菜单结构 -->
-                <li class="dropdown">
-                    <a href="#" class="active">同期热销品 ▼</a>
-                    <div class="dropdown-content">
-                        <a href="march_bestsellers.html">同期3月</a>
-                        <!-- 以后可以加 同期4月 等 -->
-                    </div>
-                </li>
+    <!-- ✅ 1. 导航栏占位符 -->
+    <div id="nav-placeholder"></div>
 
-                <li><a href="#">其他分类1（可扩展）</a></li>
-                <li><a href="#">其他分类2（可扩展）</a></li>
-            </ul>
-        </div>
-    </header>
-
+    <!-- 页面核心内容 -->
     <h1 class="header">CH-同期热销品（同期3月）</h1>
     <div class="loading" id="initialLoading">正在加载数据...</div>
 
@@ -226,7 +236,10 @@
             </div>
 
             <div class="container" id="product-container"></div>
-            <div class="load-more" id="loadMoreTip" style="display: none;">加载中...</div>
+            
+            <div id="loadMoreBtn" class="load-more-btn" style="display: none;" onclick="loadNextPage()">
+                点击加载更多商品
+            </div>
 
             <div id="pro-section" class="pro-section">
                 <div class="pro-header">
@@ -244,6 +257,10 @@
 
     <div id="titlePopup" class="title-popup"></div>
 
+    <!-- ✅ 2. 引入公共导航脚本 -->
+    <script src="common-nav.js"></script>
+
+    <!-- 原有业务逻辑脚本 -->
     <script>
         // ================= 配置区域 =================
         const URL_BESTSELLERS = "https://img.hohopick.top/march_bestsellers.json";
@@ -258,8 +275,6 @@
         
         let currentFilter = ""; 
         let currentCoreTerm = ""; 
-        
-        // 【核心新增】：记录滚动位置
         let lastScrollPosition = 0;
 
         let isFirstLoad = true;
@@ -268,7 +283,6 @@
         window.addEventListener('DOMContentLoaded', async () => {
             await loadAllData();
             initSidebar();
-            initScroll();
             initPopup();
         });
 
@@ -299,20 +313,29 @@
             }
         }
 
-        // ================= 筛选逻辑（含滚动位置记忆） =================
+        // ================= 点击加载更多逻辑 =================
+        
+        window.loadNextPage = function() {
+            const maxPage = Math.ceil(filteredBestsellers.length / PAGE_SIZE);
+            if (currentPage < maxPage) {
+                const btn = document.getElementById('loadMoreBtn');
+                btn.textContent = "加载中..."; 
+                
+                setTimeout(() => {
+                    currentPage++;
+                    renderBestsellers(currentPage);
+                }, 50);
+            }
+        }
 
         window.setCoreTermFilter = function(term) {
-            // 【核心步骤 1】：保存当前滚动位置
             lastScrollPosition = window.scrollY;
-
             currentCoreTerm = term;
             document.getElementById('active-term-text').textContent = term;
             document.getElementById('filter-status-bar').classList.add('show');
             
             applyFilters();
             renderProSection(term);
-            
-            // 筛选后回到顶部看详情
             window.scrollTo({ top: 0, behavior: 'auto' });
         }
 
@@ -322,9 +345,6 @@
             document.getElementById('pro-section').classList.remove('active');
             
             applyFilters();
-            
-            // 【核心步骤 2】：恢复到之前的位置
-            // 使用 setTimeout 确保页面渲染完后再滚动
             setTimeout(() => {
                 window.scrollTo({ top: lastScrollPosition, behavior: 'auto' });
             }, 0);
@@ -355,12 +375,13 @@
             const start = (page - 1) * PAGE_SIZE;
             const end = page * PAGE_SIZE;
             const list = filteredBestsellers.slice(start, end);
+            
             const container = document.getElementById('product-container');
-            const loadMore = document.getElementById('loadMoreTip');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
 
             if (list.length === 0 && page === 1) {
                 container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#999">暂无匹配商品</div>';
-                loadMore.style.display = 'none';
+                loadMoreBtn.style.display = 'none';
                 return;
             }
 
@@ -379,7 +400,6 @@
 
                 const div = document.createElement('div');
                 div.className = 'product-card';
-                // 【核心修改】：使用 product-meta-start 类，让核心词紧挨着
                 div.innerHTML = `
                     <img class="product-img" src="${img}" loading="lazy" onerror="this.classList.add('error')">
                     <div class="product-name" onmouseover="showPopup(this, '${title}')" onmouseout="hidePopup()">${title}</div>
@@ -398,9 +418,15 @@
                 container.appendChild(div);
             });
 
-            loadMore.style.display = (end < filteredBestsellers.length) ? 'block' : 'none';
-            loadMore.textContent = (end < filteredBestsellers.length) ? '上拉加载更多...' : '没有更多了';
-            isLoading = false;
+            if (end < filteredBestsellers.length) {
+                loadMoreBtn.style.display = 'block';
+                loadMoreBtn.textContent = '点击加载更多商品';
+                loadMoreBtn.classList.remove('disabled');
+            } else {
+                loadMoreBtn.style.display = 'block';
+                loadMoreBtn.textContent = '已显示全部商品';
+                loadMoreBtn.classList.add('disabled');
+            }
         }
 
         function renderProSection(targetTerm) {
@@ -459,24 +485,6 @@
                     }
                     applyFilters();
                 });
-            });
-        }
-
-        function initScroll() {
-            let timer;
-            window.addEventListener('scroll', () => {
-                if (timer) clearTimeout(timer);
-                timer = setTimeout(() => {
-                    const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
-                    if (scrollTop + clientHeight >= scrollHeight - 300) {
-                        const maxPage = Math.ceil(filteredBestsellers.length / PAGE_SIZE);
-                        if (currentPage < maxPage && !isLoading) {
-                            isLoading = true;
-                            currentPage++;
-                            renderBestsellers(currentPage);
-                        }
-                    }
-                }, 100);
             });
         }
 
