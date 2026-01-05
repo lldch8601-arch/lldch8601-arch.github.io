@@ -9,7 +9,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft Yahei", sans-serif; }
         body { background: #f5f5f5; padding-bottom: 50px; }
         
-        /* ================= 导航栏样式 (适配 common-nav.js) ================= */
+        /* ================= 导航栏样式 ================= */
         .nav-header {
             background: #fff;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -37,7 +37,7 @@
         }
         .nav-menu a:hover, .nav-menu a.active { color: #1677ff; font-weight: bold; }
 
-        /* 通用下拉菜单样式 */
+        /* 下拉菜单 */
         .dropdown-content {
             display: none;
             position: absolute;
@@ -57,13 +57,8 @@
             color: #333;
             font-weight: normal;
         }
-        .dropdown-content a:hover {
-            background-color: #f5f5f5;
-            color: #1677ff;
-        }
-        .dropdown:hover .dropdown-content {
-            display: block;
-        }
+        .dropdown-content a:hover { background-color: #f5f5f5; color: #1677ff; }
+        .dropdown:hover .dropdown-content { display: block; }
 
         /* ================= 核心布局 ================= */
         .header { text-align: center; margin: 30px 0; color: #333; }
@@ -71,7 +66,7 @@
             display: flex; max-width: 1400px; margin: 0 auto; gap: 20px; align-items: flex-start; 
         }
 
-        /* 侧边栏固定 */
+        /* 侧边栏 */
         .sidebar {
             width: 80px; flex-shrink: 0; position: sticky; top: 80px; z-index: 10;
         }
@@ -166,11 +161,18 @@
         .pro-link { background: #fff7e6; color: #d46b08; }
         .pro-link:hover { background: #d46b08; color: white; }
 
-        /* ================= 加载更多按钮 ================= */
+        /* ================= 加载提示/按钮 ================= */
         .loading { text-align: center; color: #999; padding: 20px; font-size: 14px; }
         
+        /* 1. 无限滚动时的提示文字 */
+        .scroll-load-tip {
+            text-align: center; color: #999; padding: 20px; font-size: 14px;
+            display: none;
+        }
+
+        /* 2. 点击加载更多按钮 (默认隐藏，进入核心词模式才显示) */
         .load-more-btn {
-            display: block;
+            display: none; /* 默认隐藏 */
             margin: 30px auto;
             padding: 12px 40px;
             background-color: #fff;
@@ -237,9 +239,13 @@
 
             <div class="container" id="product-container"></div>
             
-            <div id="loadMoreBtn" class="load-more-btn" style="display: none;" onclick="loadNextPage()">
+            <!-- 模式 1：无限滚动提示文字 -->
+            <div id="scrollLoadTip" class="scroll-load-tip">加载中...</div>
+
+            <!-- 模式 2：点击加载按钮 -->
+            <button id="loadMoreBtn" class="load-more-btn" onclick="loadNextPage()">
                 点击加载更多商品
-            </div>
+            </button>
 
             <div id="pro-section" class="pro-section">
                 <div class="pro-header">
@@ -260,7 +266,7 @@
     <!-- ✅ 2. 引入公共导航脚本 -->
     <script src="common-nav.js"></script>
 
-    <!-- 原有业务逻辑脚本 -->
+    <!-- 业务逻辑 -->
     <script>
         // ================= 配置区域 =================
         const URL_BESTSELLERS = "https://img.hohopick.top/march_bestsellers.json";
@@ -274,8 +280,10 @@
         let currentPage = 1;
         
         let currentFilter = ""; 
-        let currentCoreTerm = ""; 
+        let currentCoreTerm = ""; // 核心词变量：为空=主页模式(无限滚动)；有值=筛选模式(点击加载)
+        
         let lastScrollPosition = 0;
+        let savedPageCount = 1;
 
         let isFirstLoad = true;
         let isLoading = false;
@@ -284,6 +292,9 @@
             await loadAllData();
             initSidebar();
             initPopup();
+            
+            // 恢复滚动监听 (仅在主页模式下生效)
+            initScroll();
         });
 
         async function loadAllData() {
@@ -313,24 +324,52 @@
             }
         }
 
-        // ================= 点击加载更多逻辑 =================
-        
+        // ================= 加载下一页逻辑 (通用) =================
         window.loadNextPage = function() {
+            if (isLoading) return; // 防止重复触发
+
             const maxPage = Math.ceil(filteredBestsellers.length / PAGE_SIZE);
             if (currentPage < maxPage) {
-                const btn = document.getElementById('loadMoreBtn');
-                btn.textContent = "加载中..."; 
+                isLoading = true;
                 
+                // 交互反馈
+                const btn = document.getElementById('loadMoreBtn');
+                const tip = document.getElementById('scrollLoadTip');
+                if (currentCoreTerm) btn.textContent = "加载中...";
+                else tip.style.display = 'block';
+
                 setTimeout(() => {
                     currentPage++;
                     renderBestsellers(currentPage);
-                }, 50);
+                }, 100);
             }
         }
 
+        // ================= 滚动监听 (只在非筛选模式下生效) =================
+        function initScroll() {
+            let timer;
+            window.addEventListener('scroll', () => {
+                // 【核心逻辑】：如果正在筛选核心词，禁止无限滚动，改用按钮
+                if (currentCoreTerm !== "") return; 
+
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(() => {
+                    const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+                    // 距离底部 300px 触发
+                    if (scrollTop + clientHeight >= scrollHeight - 300) {
+                        loadNextPage();
+                    }
+                }, 100);
+            });
+        }
+
+        // ================= 筛选逻辑 =================
+
         window.setCoreTermFilter = function(term) {
             lastScrollPosition = window.scrollY;
-            currentCoreTerm = term;
+            savedPageCount = currentPage;
+
+            currentCoreTerm = term; // 标记进入筛选模式
             document.getElementById('active-term-text').textContent = term;
             document.getElementById('filter-status-bar').classList.add('show');
             
@@ -340,11 +379,24 @@
         }
 
         window.clearCoreTermFilter = function() {
-            currentCoreTerm = "";
+            currentCoreTerm = ""; // 标记回到主页模式
             document.getElementById('filter-status-bar').classList.remove('show');
             document.getElementById('pro-section').classList.remove('active');
             
-            applyFilters();
+            // 重新计算过滤 (保留FBA状态)
+            filteredBestsellers = allBestsellers.filter(item => {
+                const shipping = item.shipping_method || item['配送方式'];
+                const matchShipping = currentFilter ? shipping === currentFilter : true;
+                return matchShipping; 
+            });
+
+            // 恢复之前的数据量
+            document.getElementById('product-container').innerHTML = '';
+            for (let i = 1; i <= savedPageCount; i++) {
+                renderBestsellers(i);
+            }
+            currentPage = savedPageCount;
+
             setTimeout(() => {
                 window.scrollTo({ top: lastScrollPosition, behavior: 'auto' });
             }, 0);
@@ -371,6 +423,7 @@
             renderBestsellers(currentPage);
         }
 
+        // ================= 渲染逻辑 (自动判断显示按钮还是滚动提示) =================
         function renderBestsellers(page) {
             const start = (page - 1) * PAGE_SIZE;
             const end = page * PAGE_SIZE;
@@ -378,10 +431,12 @@
             
             const container = document.getElementById('product-container');
             const loadMoreBtn = document.getElementById('loadMoreBtn');
+            const scrollTip = document.getElementById('scrollLoadTip');
 
             if (list.length === 0 && page === 1) {
                 container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#999">暂无匹配商品</div>';
                 loadMoreBtn.style.display = 'none';
+                scrollTip.style.display = 'none';
                 return;
             }
 
@@ -418,15 +473,33 @@
                 container.appendChild(div);
             });
 
-            if (end < filteredBestsellers.length) {
-                loadMoreBtn.style.display = 'block';
-                loadMoreBtn.textContent = '点击加载更多商品';
-                loadMoreBtn.classList.remove('disabled');
+            // ================= 核心：根据模式切换加载控件 =================
+            const hasMore = end < filteredBestsellers.length;
+
+            if (currentCoreTerm) {
+                // 模式 2：筛选状态 -> 显示按钮
+                scrollTip.style.display = 'none'; // 隐藏滚动提示
+                loadMoreBtn.style.display = 'block'; // 显示按钮
+                
+                if (hasMore) {
+                    loadMoreBtn.textContent = '点击加载更多商品';
+                    loadMoreBtn.classList.remove('disabled');
+                } else {
+                    loadMoreBtn.textContent = '已显示全部商品';
+                    loadMoreBtn.classList.add('disabled');
+                }
             } else {
-                loadMoreBtn.style.display = 'block';
-                loadMoreBtn.textContent = '已显示全部商品';
-                loadMoreBtn.classList.add('disabled');
+                // 模式 1：主页状态 -> 隐藏按钮，使用滚动提示
+                loadMoreBtn.style.display = 'none'; // 隐藏按钮
+                scrollTip.style.display = hasMore ? 'block' : 'block';
+                scrollTip.textContent = hasMore ? '加载中...' : '没有更多商品了';
+                if(!hasMore) {
+                    // 没数据了，延迟隐藏提示，或者一直留着
+                    // scrollTip.style.display = 'block'; 
+                }
             }
+            
+            isLoading = false;
         }
 
         function renderProSection(targetTerm) {
