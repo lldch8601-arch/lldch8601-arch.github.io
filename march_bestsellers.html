@@ -5,52 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CH-同期3月热销品</title>
     
-    <!-- ✅ 1. 引入公共CSS (解决导航栏样式) -->
     <link rel="stylesheet" href="common.css">
     
     <style>
-        /* ================= 页面特有样式 ================= */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft Yahei", sans-serif; }
         
         body { 
             background: #f5f5f5; 
-            /* ✅ 关键：顶部留出 90px，防止被固定导航栏遮挡 */
             padding: 90px 20px 50px 20px; 
         }
 
-        /* 核心布局 */
         .header { text-align: center; margin-bottom: 40px; color: #333; }
         
         .main-content {
             display: flex; 
             max-width: 1400px; 
             margin: 0 auto; 
-            gap: 40px; /* 侧边栏和内容的间距 */
+            gap: 40px; 
             align-items: flex-start; 
         }
 
-        /* 侧边栏固定 */
         .sidebar {
-            width: 80px; 
+            width: 70px; 
             flex-shrink: 0; 
             position: sticky; 
-            top: 80px; /* 距离顶部 80px 吸附 */
+            top: 80px; 
             z-index: 10;
         }
+        
         .sidebar-btn {
-            display: block; width: 100%; padding: 10px 0; margin-bottom: 12px;
+            display: block; width: 100%; 
+            padding: 8px 0; 
+            margin-bottom: 12px;
             background: #fff; border: 1px solid #e0e0e0; border-radius: 6px;
-            cursor: pointer; transition: all 0.2s; font-size: 13px; color: #666;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            cursor: pointer; transition: all 0.2s; 
+            font-size: 13px; 
+            color: #666;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
         .sidebar-btn:hover, .sidebar-btn.active {
             background: #1677ff; color: white; border-color: #1677ff;
             box-shadow: 0 4px 10px rgba(22, 119, 255, 0.3);
+            transform: translateY(-2px);
         }
 
         .content-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
-        /* 筛选状态栏 */
         .filter-status-bar {
             display: none; background: #e6f7ff; border: 1px solid #91caff;
             padding: 15px 20px; margin-bottom: 20px; border-radius: 8px;
@@ -69,7 +69,6 @@
         
         @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        /* 商品网格 */
         .container {
             display: grid; 
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -86,8 +85,10 @@
         .product-img {
             width: 100%; height: 220px; object-fit: cover; border-radius: 6px;
             margin-bottom: 10px; background: #f0f0f0; transition: opacity 0.3s;
+            opacity: 0.8;
         }
         .product-img.loaded { opacity: 1; }
+        .product-img.error { background: #f8f8f8; }
         
         .product-name {
             font-size: 14px; color: #333; line-height: 1.4; margin-bottom: 8px;
@@ -115,7 +116,6 @@
         }
         .product-link:hover { background: #1677ff; color: white; }
 
-        /* 1688 新品区 */
         .pro-section {
             display: none; margin-top: 20px; border-top: 2px dashed #d9d9d9; padding-top: 30px;
             background: #fffbe6; padding: 20px; border-radius: 8px; border: 1px solid #ffe58f;
@@ -130,34 +130,27 @@
         .pro-link { background: #fff7e6; color: #d46b08; }
         .pro-link:hover { background: #d46b08; color: white; }
 
-        /* ================= 加载控件样式 ================= */
-        .loading { text-align: center; color: #999; padding: 20px; font-size: 14px; }
-        
-        /* 1. 滚动加载提示文字 (仅主页模式显示) */
-        .scroll-load-tip {
-            text-align: center; color: #999; padding: 30px; font-size: 14px;
-            display: none; 
+        /* 加载动画 */
+        .loading { 
+            text-align: center; color: #999; padding: 40px; font-size: 14px; 
+            display: flex; align-items: center; justify-content: center; gap: 10px;
         }
-
-        /* 2. 点击加载按钮 (仅筛选模式显示) */
+        .loading::before {
+            content: ""; width: 20px; height: 20px;
+            border: 2px solid #1677ff; border-top-color: transparent;
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* 统一的加载按钮 */
         .load-more-btn {
             display: none; /* 默认隐藏 */
-            margin: 30px auto; 
-            padding: 12px 40px;
-            background-color: #fff; 
-            border: 1px solid #d9d9d9; 
-            border-radius: 30px;
-            color: #666; 
-            font-size: 14px; 
-            cursor: pointer; 
-            transition: all 0.3s;
-            text-align: center; 
-            width: fit-content;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin: 30px auto; padding: 12px 40px;
+            background-color: #fff; border: 1px solid #d9d9d9; border-radius: 30px;
+            color: #666; font-size: 14px; cursor: pointer; transition: all 0.3s;
+            text-align: center; width: fit-content; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
-        .load-more-btn:hover { 
-            color: #1677ff; border-color: #1677ff; background-color: #f0f5ff; 
-        }
+        .load-more-btn:hover { color: #1677ff; border-color: #1677ff; background-color: #f0f5ff; }
         .load-more-btn.disabled { 
             background-color: transparent; border-color: transparent; 
             box-shadow: none; color: #ccc; cursor: default; pointer-events: none; 
@@ -172,7 +165,6 @@
 </head>
 <body>
 
-    <!-- ✅ 2. 导航栏占位符 -->
     <div id="nav-placeholder"></div>
 
     <h1 class="header">CH-同期热销品（同期3月）</h1>
@@ -200,10 +192,7 @@
 
             <div class="container" id="product-container"></div>
             
-            <!-- 模式 1：无限滚动提示 -->
-            <div id="scrollLoadTip" class="scroll-load-tip">正在加载更多商品...</div>
-
-            <!-- 模式 2：点击加载按钮 -->
+            <!-- 统一使用按钮加载 -->
             <button id="loadMoreBtn" class="load-more-btn" onclick="loadNextPage()">
                 点击加载更多商品
             </button>
@@ -224,7 +213,6 @@
 
     <div id="titlePopup" class="title-popup"></div>
 
-    <!-- ✅ 3. 引入公共导航脚本 -->
     <script src="common-nav.js"></script>
 
     <script>
@@ -238,7 +226,7 @@
         let currentPage = 1;
         
         let currentFilter = ""; 
-        let currentCoreTerm = ""; // 为空=主页滚动模式；有值=筛选点击模式
+        let currentCoreTerm = ""; 
         let lastScrollPosition = 0;
         let savedPageCount = 1;
 
@@ -249,79 +237,72 @@
             await loadAllData();
             initSidebar();
             initPopup();
-            
-            // 启动滚动监听
-            window.addEventListener('scroll', handleScroll);
         });
 
+        // ========== 核心优化：分步加载（关键路径优先） ==========
         async function loadAllData() {
-            if(isFirstLoad) document.getElementById('initialLoading').style.display = 'block';
+            if(isFirstLoad) document.getElementById('initialLoading').style.display = 'flex';
             try {
-                const [res1, res2] = await Promise.all([
-                    fetch(URL_BESTSELLERS, {cache: "no-cache"}),
-                    fetch(URL_PRO, {cache: "no-cache"})
-                ]);
+                // 1. 【优先】只加载核心热销品数据 (march_bestsellers.json)
+                const res1 = await fetch(URL_BESTSELLERS, {
+                    cache: "default" 
+                });
                 if (!res1.ok) throw new Error("热销品数据加载失败");
                 
                 const json1 = await res1.json();
                 allBestsellers = Array.isArray(json1) ? json1 : (json1["march_bestsellers"] || []);
-                
-                if (res2.ok) {
-                    const json2 = await res2.json();
-                    allProProducts = Array.isArray(json2) ? json2 : (json2["mar_pro"] || []);
-                }
-
                 filteredBestsellers = [...allBestsellers];
+                
+                // 2. 立即渲染页面，让用户不用等
                 renderBestsellers(1);
                 document.getElementById('initialLoading').style.display = 'none';
                 isFirstLoad = false;
+
+                // 3. 【延迟】悄悄加载 1688 数据 (mar_pro.json)
+                // 延迟 500ms，等主页面渲染完再请求，不占用初始带宽
+                setTimeout(async () => {
+                    try {
+                        const res2 = await fetch(URL_PRO, { cache: "default" });
+                        if (res2.ok) {
+                            const json2 = await res2.json();
+                            allProProducts = Array.isArray(json2) ? json2 : (json2["mar_pro"] || []);
+                            console.log("1688数据后台加载完成");
+                        }
+                    } catch (e) {
+                        console.warn("1688数据加载失败(非阻塞):", e);
+                    }
+                }, 500);
+
             } catch (e) {
                 console.error(e);
+                document.getElementById('initialLoading').style.display = 'block';
                 document.getElementById('initialLoading').innerHTML = 
-                    `<span style="color:red">数据加载失败: ${e.message}</span>`;
+                    `<span style="color:red">数据加载失败: ${e.message}</span><br><button onclick="location.reload()" style="margin-top:10px;padding:5px 10px;">重试</button>`;
             }
         }
 
-        // ================= 核心：滚动控制逻辑 =================
-        function handleScroll() {
-            // 如果处于筛选模式，直接退出，禁止滚动加载！
-            if (currentCoreTerm !== "") return;
-            
-            if (isLoading) return;
-
-            const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
-            // 距离底部 200px 触发
-            if (scrollTop + clientHeight >= scrollHeight - 200) {
-                loadNextPage();
-            }
-        }
-
+        // ========== 统一使用按钮加载 ==========
         window.loadNextPage = function() {
             if (isLoading) return;
 
             const maxPage = Math.ceil(filteredBestsellers.length / PAGE_SIZE);
             if (currentPage < maxPage) {
                 isLoading = true;
-                
-                // 根据模式显示不同的加载提示
                 const btn = document.getElementById('loadMoreBtn');
-                const tip = document.getElementById('scrollLoadTip');
-                
-                if (currentCoreTerm) {
-                    btn.textContent = "加载中...";
-                } else {
-                    tip.style.display = 'block';
-                }
+                btn.textContent = "加载中...";
+                btn.classList.add('disabled');
 
-                // 模拟延迟，防止渲染太快看不清
                 setTimeout(() => {
                     currentPage++;
                     renderBestsellers(currentPage);
-                }, 100);
+                    
+                    isLoading = false;
+                    btn.classList.remove('disabled');
+                }, 300);
             }
         }
 
-        // ================= 筛选逻辑 =================
+        // ========== 筛选逻辑 ==========
         window.setCoreTermFilter = function(term) {
             lastScrollPosition = window.scrollY;
             savedPageCount = currentPage;
@@ -346,9 +327,10 @@
                 return matchShipping; 
             });
 
-            // 恢复之前的数据量
             document.getElementById('product-container').innerHTML = '';
-            // 循环渲染恢复之前的页数
+            currentPage = 1; 
+            // 如果你想返回时只显示第一页，用 currentPage = 1
+            // 如果你想恢复之前看的页数，用下面的循环：
             for (let i = 1; i <= savedPageCount; i++) {
                 renderBestsellers(i);
             }
@@ -380,7 +362,7 @@
             renderBestsellers(currentPage);
         }
 
-        // ================= 渲染逻辑 (关键：根据模式切换控件) =================
+        // ========== 渲染逻辑 (统一处理按钮显示) ==========
         function renderBestsellers(page) {
             const start = (page - 1) * PAGE_SIZE;
             const end = page * PAGE_SIZE;
@@ -388,78 +370,77 @@
             
             const container = document.getElementById('product-container');
             const loadMoreBtn = document.getElementById('loadMoreBtn');
-            const scrollTip = document.getElementById('scrollLoadTip');
 
             if (list.length === 0 && page === 1) {
                 container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#999">暂无匹配商品</div>';
                 loadMoreBtn.style.display = 'none';
-                scrollTip.style.display = 'none';
                 return;
             }
 
-            list.forEach(item => {
-                const title = item['商品名称'] || item.title || "未知";
-                const img = optimizeImg(item['图片链接'] || item.first_image_url);
-                const link = item['产品链接'] || item.url || "#";
-                const term = item['核心搜索词中文'] || item['搜索词'] || "";
-                const price = item['价格'] || item.price || "0.00";
-                const date = item['上架时间'] || item.launch_date || "-";
-                const ship = item.shipping_method || item['配送方式'] || "";
-                const keyword = item['搜索关键词'] || item['search_keyword'] || "-";
+            // 分批渲染防卡顿
+            const batchSize = 6;
+            let currentIndex = 0;
 
-                const termHtml = term ? 
-                    `<span class="clickable-term" onclick="setCoreTermFilter('${term}')" title="点击筛选">${term}</span>` : "无";
-
-                const div = document.createElement('div');
-                div.className = 'product-card';
-                div.innerHTML = `
-                    <img class="product-img" src="${img}" loading="lazy" onerror="this.classList.add('error')">
-                    <div class="product-name" onmouseover="showPopup(this, '${title}')" onmouseout="hidePopup()">${title}</div>
+            function renderBatch() {
+                const batch = list.slice(currentIndex, currentIndex + batchSize);
+                if (batch.length === 0) {
+                    // 渲染完成，更新按钮状态
+                    const hasMore = end < filteredBestsellers.length;
+                    loadMoreBtn.style.display = 'block'; // 始终显示按钮
                     
-                    <div class="product-meta">
-                        <span style="background:#f0f0f0;padding:2px 6px;border-radius:4px">${ship}</span> 
-                        <span class="price-tag">${price}</span>
-                    </div>
-
-                    <div class="product-meta-start"><span>核心词：</span>${termHtml}</div>
-                    <div class="product-meta-start"><span>关键词：</span>${keyword}</div>
-                    
-                    <div class="product-meta"><span>上架：${date}</span></div>
-                    <a class="product-link" href="${link}" target="_blank">查看亚马逊详情</a>
-                `;
-                container.appendChild(div);
-            });
-
-            // ✅ 核心：加载完数据后，决定显示谁
-            const hasMore = end < filteredBestsellers.length;
-
-            if (currentCoreTerm) {
-                // --- 模式 2：筛选状态 (强制用按钮) ---
-                scrollTip.style.display = 'none'; // 隐藏滚动提示
-                loadMoreBtn.style.display = 'block'; // 显示按钮
-                
-                if (hasMore) {
-                    loadMoreBtn.textContent = '点击加载更多商品';
-                    loadMoreBtn.classList.remove('disabled');
-                } else {
-                    loadMoreBtn.textContent = '已显示全部商品';
-                    loadMoreBtn.classList.add('disabled');
+                    if (hasMore) {
+                        loadMoreBtn.textContent = '点击加载更多商品';
+                        loadMoreBtn.classList.remove('disabled');
+                    } else {
+                        loadMoreBtn.textContent = '已显示全部商品';
+                        loadMoreBtn.classList.add('disabled');
+                    }
+                    isLoading = false;
+                    return;
                 }
-            } else {
-                // --- 模式 1：主页状态 (无限滚动) ---
-                loadMoreBtn.style.display = 'none'; // 隐藏按钮
-                
-                if (hasMore) {
-                    // 还有下一页，隐藏提示，等待用户滚动到底部
-                    scrollTip.style.display = 'none'; 
-                } else {
-                    // 没有更多了
-                    scrollTip.style.display = 'block';
-                    scrollTip.textContent = '没有更多商品了';
-                }
+
+                batch.forEach(item => {
+                    const title = item['商品名称'] || item.title || "未知";
+                    const img = optimizeImg(item['图片链接'] || item.first_image_url);
+                    const link = item['产品链接'] || item.url || "#";
+                    const term = item['核心搜索词中文'] || item['搜索词'] || "";
+                    const price = item['价格'] || item.price || "0.00";
+                    const date = item['上架时间'] || item.launch_date || "-";
+                    const ship = item.shipping_method || item['配送方式'] || "";
+                    const keyword = item['搜索关键词'] || item['search_keyword'] || "-";
+
+                    const termHtml = term ? 
+                        `<span class="clickable-term" onclick="setCoreTermFilter('${term}')" title="点击筛选">${term}</span>` : "无";
+
+                    const div = document.createElement('div');
+                    div.className = 'product-card';
+                    div.innerHTML = `
+                        <img class="product-img" 
+                             src="${img || 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='}" 
+                             loading="lazy" 
+                             onerror="this.src='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='; this.classList.add('error')"
+                             onload="this.classList.add('loaded')">
+                        <div class="product-name" onmouseover="showPopup(this, '${title}')" onmouseout="hidePopup()">${title}</div>
+                        
+                        <div class="product-meta">
+                            <span style="background:#f0f0f0;padding:2px 6px;border-radius:4px">${ship}</span> 
+                            <span class="price-tag">${price}</span>
+                        </div>
+
+                        <div class="product-meta-start"><span>核心词：</span>${termHtml}</div>
+                        <div class="product-meta-start"><span>关键词：</span>${keyword}</div>
+                        
+                        <div class="product-meta"><span>上架：${date}</span></div>
+                        <a class="product-link" href="${link}" target="_blank">查看亚马逊详情</a>
+                    `;
+                    container.appendChild(div);
+                });
+
+                currentIndex += batchSize;
+                setTimeout(renderBatch, 5);
             }
-            
-            isLoading = false;
+
+            renderBatch();
         }
 
         function renderProSection(targetTerm) {
@@ -488,7 +469,11 @@
                 const div = document.createElement('div');
                 div.className = 'product-card pro-card';
                 div.innerHTML = `
-                    <img class="product-img" src="${img}" loading="lazy" onerror="this.classList.add('error')">
+                    <img class="product-img" 
+                         src="${img || 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='}" 
+                         loading="lazy" 
+                         onerror="this.src='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='; this.classList.add('error')"
+                         onload="this.classList.add('loaded')">
                     <div class="product-name" onmouseover="showPopup(this, '${title}')" onmouseout="hidePopup()">${title}</div>
                     <div class="product-meta" style="color:#d46b08;font-weight:bold">1688 新品</div>
                     <div class="product-meta-start">匹配词：${term}</div>
@@ -501,7 +486,13 @@
 
         function optimizeImg(url) {
             if (!url) return ""; 
-            if (url.includes("amazon.com/images/")) return url.replace(/_AC_SL\d+_/g, "_AC_SL600_");
+            if (url.includes("amazon.com/images/")) {
+                return url.replace(/_AC_SL\d+_/g, "_AC_SL200_")
+                          .replace(/\.jpg/, ".jpg?quality=80");
+            }
+            if (url.includes("hohopick.top")) {
+                return url + (url.includes("?") ? "&" : "?") + "w=200&q=80";
+            }
             return url;
         }
 
